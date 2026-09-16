@@ -638,7 +638,10 @@
           logger: {
             log: (message, data) => DebugLog.log(message, data),
             error: (message, error) => DebugLog.error(message, error)
-          }
+          },
+          // Discussions are read from the page, so their bodies need the same
+          // HTML-to-Markdown converter the rest of the extension uses.
+          createTurndown: () => ScrapLLMConvert.configureTurndownService(settings)
         });
         if (github) {
           // The GitHub renderer emits its own H1, so includeTitle is

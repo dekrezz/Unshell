@@ -24,6 +24,8 @@ var ScrapLLMGitHub = typeof ScrapLLMGitHub !== 'undefined' ? ScrapLLMGitHub : (f
   // /owner/repo, optionally followed by /tree/<ref> — the pages that are "the
   // repository" rather than a view onto one file.
   const REPO_PATH_RE = /^\/([^/]+)\/([^/]+?)(?:\/tree\/[^/]+)?\/?$/;
+  // /owner/repo/discussions/733
+  const DISCUSSION_PATH_RE = /^\/([^/]+)\/([^/]+)\/discussions\/(\d+)/;
 
   // Paths that look like a repo but are GitHub's own furniture.
   const RESERVED_OWNERS = new Set([
@@ -53,8 +55,18 @@ var ScrapLLMGitHub = typeof ScrapLLMGitHub !== 'undefined' ? ScrapLLMGitHub : (f
     return { owner, repo: repo.replace(/\.git$/, '') };
   }
 
-  // Returns 'repo' or null (null = let the generic pipeline handle it)
+  function parseDiscussion(location) {
+    const loc = location || window.location;
+    if (!isGitHubHost(loc.hostname)) return null;
+    const match = DISCUSSION_PATH_RE.exec(loc.pathname || '/');
+    if (!match) return null;
+    return { owner: match[1], repo: match[2], number: match[3] };
+  }
+
+  // Returns 'repo', 'discussion', or null (null = let the generic pipeline
+  // handle it)
   function getPageType(location) {
+    if (parseDiscussion(location)) return 'discussion';
     return parseRepo(location) ? 'repo' : null;
   }
 
@@ -244,12 +256,195 @@ var ScrapLLMGitHub = typeof ScrapLLMGitHub !== 'undefined' ? ScrapLLMGitHub : (f
   }
 
   // ==========================================================================
+  // DISCUSSIONS
+  // ==========================================================================
+
+  // Discussions are the one part of GitHub with no REST endpoint — they exist
+  // only in the GraphQL API, which needs a token this extension has no business
+  // asking for. So this reads the rendered page, which is also what the user is
+  // looking at.
+  //
+  // Readability makes a mess of it: the thread is a timeline of sibling
+  // containers with the same shape, so it keeps whichever one scored best and
+  // drops the rest, along with who wrote what and in reply to whom.
+
+  function discussionText(element, createTurndown) {
+    if (!element) return '';
+    // A comment body is Markdown that GitHub already compiled to HTML; sending
+    // it back through Turndown is the only way to keep fenced code, tables and
+    // links that a plain textContent read would flatten.
+    if (typeof createTurndown === 'function') {
+      try {
+        return String(createTurndown().turndown(element.innerHTML) || '')
+          .replace(/\n{3,}/g, '\n\n').trim();
+      } catch (error) {
+        logger.error('GitHub discussion markdown conversion failed', error);
+      }
+    }
+    return element.textContent.replace(/\s+\n/g, '\n').trim();
+  }
+
+  // GitHub nests a reply's container *inside* the comment it answers, so a
+  // plain querySelector reaches past this comment and returns the reply's
+  // author, timestamp or body. Every read is therefore scoped to the nodes that
+  // still belong to this container.
+  function ownQuery(container, selector) {
+    for (const node of container.querySelectorAll(selector)) {
+      if (node.closest('.js-comment-container') === container) return node;
+    }
+    return null;
+  }
+
+  function ownQueryAll(container, selector) {
+    return Array.from(container.querySelectorAll(selector))
+      .filter(node => node.closest('.js-comment-container') === container);
+  }
+
+  function discussionAuthor(container) {
+    const author = ownQuery(container, '.author') ||
+                   ownQuery(container, 'a[data-hovercard-type="user"]');
+    return author ? author.textContent.trim() : '';
+  }
+
+  function discussionBadges(container) {
+    // "Author", "Maintainer", "Member" — who is speaking matters in a proposal
+    // thread, and the page says it in a label next to the name. Deduplicated,
+    // because GitHub repeats the same label in the header and the hovercard.
+    const seen = new Set();
+    for (const label of ownQueryAll(container, '.Label')) {
+      const text = label.textContent.trim();
+      if (text && !/^public$/i.test(text)) seen.add(text);
+    }
+    return Array.from(seen).slice(0, 2);
+  }
+
+  function discussionReactions(container) {
+    const reactions = ownQuery(container, '.comment-reactions');
+    if (!reactions) return '';
+    // Each reaction is a button carrying an emoji and its count.
+    const parts = Array.from(reactions.querySelectorAll('button'))
+      .map(button => button.textContent.replace(/\s+/g, ' ').trim())
+      .filter(text => /\d/.test(text));
+    return parts.join(' · ');
+  }
+
+  function discussionTimestamp(container) {
+    const time = ownQuery(container, 'relative-time') || ownQuery(container, 'time');
+    const value = time && (time.getAttribute('datetime') || time.getAttribute('title'));
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : date.toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+  }
+
+  // The post itself is the only container GitHub gives a data-url ending in
+  // /body, and the only one with no author line of its own — the author is in
+  // the page header.
+  function isDiscussionPost(container) {
+    return /\/body$/.test(container.getAttribute('data-url') || '');
+  }
+
+  function renderDiscussionComment(container, path, createTurndown) {
+    const meta = joinMeta([
+      discussionAuthor(container) || '[unknown]',
+      discussionTimestamp(container),
+      discussionBadges(container).join(', '),
+      container.classList.contains('js-discussion-answer') ||
+      container.querySelector('[class*="answer-badge"], .js-answer-marker') ? 'marked as answer' : ''
+    ]);
+    const body = discussionText(ownQuery(container, '.comment-body') ||
+                                ownQuery(container, '.markdown-body'), createTurndown);
+    const reactions = discussionReactions(container);
+    return `**[${path}]** ${meta}\n\n${body || '_[empty]_'}` +
+           (reactions ? `\n\nReactions: ${reactions}` : '');
+  }
+
+  function convertDiscussion(target, settings, deps) {
+    const createTurndown = deps && deps.createTurndown;
+    const containers = Array.from(document.querySelectorAll('.js-comment-container'));
+    if (!containers.length) {
+      logger.log('GitHub discussion had no comment containers; deferring to the generic extractor');
+      return null;
+    }
+
+    const title = (document.querySelector('.gh-header-title, h1') || {})
+      .textContent.replace(/\s+/g, ' ').trim();
+    const category = (document.querySelector('a[href*="/discussions/categories/"]') || {}).textContent;
+    const headerMeta = (document.querySelector('.gh-header') || {}).textContent || '';
+    const started = /(\S+)\s+started this conversation/.exec(headerMeta.replace(/\s+/g, ' '));
+    const upvotes = (document.querySelector('[aria-label*="upvote" i]') || {}).textContent;
+    const replyCount = Array.from(document.querySelectorAll('h2, .f5'))
+      .map(node => node.textContent.replace(/\s+/g, ' ').trim())
+      .find(text => /^Replies:/i.test(text));
+
+    const post = containers.find(isDiscussionPost) || containers[0];
+    const replies = containers.filter(container => container !== post);
+
+    const header = [`# ${title || document.title}`];
+    header.push('');
+    header.push('**Source:** GitHub Discussions');
+    if (started) header.push(`**Started by:** ${started[1]}`);
+    if (category) header.push(`**Category:** ${category.replace(/\s+/g, ' ').trim()}`);
+    if (discussionTimestamp(post)) header.push(`**Posted:** ${discussionTimestamp(post)}`);
+    if (upvotes && upvotes.trim()) header.push(`**Upvotes:** ${upvotes.replace(/\s+/g, ' ').trim()}`);
+    if (replyCount) header.push(`**${replyCount}**`);
+    header.push(`**URL:** ${window.location.href.split('#')[0]}`);
+
+    const sections = [
+      header.join('\n'),
+      '## Post',
+      discussionText(ownQuery(post, '.comment-body') || ownQuery(post, '.markdown-body'), createTurndown) || '_No post body._'
+    ];
+
+    if (replies.length) {
+      // A nested reply answers the comment above it, so it is numbered under
+      // it — the same addressing the Reddit extractor uses, for the same
+      // reason: indentation stops carrying meaning a few levels down.
+      const blocks = [];
+      let topLevel = 0;
+      let nested = 0;
+      for (const container of replies) {
+        const isNested = container.classList.contains('js-nested-comment-container');
+        let path;
+        if (isNested && topLevel > 0) {
+          nested += 1;
+          path = `${topLevel}.${nested}`;
+        } else {
+          topLevel += 1;
+          nested = 0;
+          path = String(topLevel);
+        }
+        blocks.push(renderDiscussionComment(container, path, createTurndown));
+      }
+      sections.push(`## Replies (${replies.length})`, blocks.join('\n\n'));
+    } else {
+      sections.push('## Replies', '_No replies._');
+    }
+
+    return {
+      markdown: sections.join('\n\n'),
+      articleData: {
+        title: title || document.title,
+        author: started ? started[1] : discussionAuthor(post),
+        siteName: 'GitHub',
+        publishedTime: discussionTimestamp(post),
+        excerpt: discussionText(ownQuery(post, '.comment-body') || ownQuery(post, '.markdown-body'), null).slice(0, 300)
+      }
+    };
+  }
+
+  // ==========================================================================
   // CONVERSION
   // ==========================================================================
 
   async function convert(settings, deps) {
     const options = settings || {};
     logger = (deps && deps.logger) || logger;
+
+    const discussion = parseDiscussion(window.location);
+    if (discussion) {
+      logger.log('GitHub discussion detected', discussion);
+      return convertDiscussion(discussion, options, deps);
+    }
 
     const target = parseRepo(window.location);
     if (!target) throw new Error('Not a GitHub repository page');
@@ -305,6 +500,9 @@ var ScrapLLMGitHub = typeof ScrapLLMGitHub !== 'undefined' ? ScrapLLMGitHub : (f
     // Exposed for tests
     _internals: {
       parseRepo,
+      parseDiscussion,
+      convertDiscussion,
+      isDiscussionPost,
       buildTree,
       renderTreeLines,
       renderFileTree,
