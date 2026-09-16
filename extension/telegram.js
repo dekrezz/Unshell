@@ -81,6 +81,11 @@ var ScrapLLMTelegram = typeof ScrapLLMTelegram !== 'undefined' ? ScrapLLMTelegra
     if (hash.topicId) kind = 'topic';
     else if (/subscriber|подписчи/i.test(status)) kind = 'channel';
     else if (/member|участник/i.test(status)) kind = 'group';
+    // A bot is a user account, so it shares the private chat's positive peer
+    // id; Telegram tells them apart by writing "bot" where a person would have
+    // a last-seen time. Worth separating, because a bot conversation is mostly
+    // commands and button menus rather than two people talking.
+    else if (/^bot$/i.test(status) || /\bbot\b|^бот$/i.test(status)) kind = 'bot';
     else kind = 'private';
 
     return {
@@ -313,6 +318,25 @@ var ScrapLLMTelegram = typeof ScrapLLMTelegram !== 'undefined' ? ScrapLLMTelegra
 
   // A message with no text still carries meaning; naming the medium is more
   // useful to a model than an empty line.
+  // Bots answer with button menus, and the buttons *are* the message: a reply
+  // that reads "Choose an option" with the options dropped is worse than
+  // useless. Each button is kept with its destination when it has one.
+  function readInlineButtons(node) {
+    const container = node.querySelector('[class*="InlineButtons"], .inline-buttons, [class*="inline-button"]');
+    if (!container) return [];
+    const buttons = container.querySelectorAll('button, a');
+    const seen = new Set();
+    const out = [];
+    buttons.forEach(button => {
+      const label = (button.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!label || seen.has(label)) return;
+      seen.add(label);
+      const href = button.getAttribute && button.getAttribute('href');
+      out.push(href && /^https?:/i.test(href) ? `[${label}](${href})` : label);
+    });
+    return out.slice(0, 12);
+  }
+
   function describeMedia(node) {
     const kinds = [];
     if (node.querySelector('.Sticker, [class*="Sticker"]')) kinds.push('sticker');
@@ -379,6 +403,7 @@ var ScrapLLMTelegram = typeof ScrapLLMTelegram !== 'undefined' ? ScrapLLMTelegra
       reply,
       text: readableMarkdown(node.querySelector('.text-content'), createTurndown),
       media: describeMedia(node),
+      buttons: readInlineButtons(node),
       time: readTime(node),
       // Read off the time element, not the whole meta block: there the marker
       // runs straight into the view count ("3.2Kedited"), where a word
@@ -516,7 +541,7 @@ var ScrapLLMTelegram = typeof ScrapLLMTelegram !== 'undefined' ? ScrapLLMTelegra
     if (info.kind === 'channel') {
       return message.forwarded ? `${info.title} (forwarded from ${message.forwarded})` : info.title;
     }
-    if (info.kind === 'private') {
+    if (info.kind === 'private' || info.kind === 'bot') {
       return message.own ? 'You' : info.title;
     }
     if (message.own) return 'You';
@@ -542,6 +567,10 @@ var ScrapLLMTelegram = typeof ScrapLLMTelegram !== 'undefined' ? ScrapLLMTelegra
     lines.push('');
     const body = [demoteHeadings(message.text), message.media].filter(Boolean).join('\n\n');
     lines.push(body || '_[no text]_');
+    if (message.buttons && message.buttons.length) {
+      lines.push('');
+      lines.push(...message.buttons.map(button => `- [button] ${button}`));
+    }
     if (message.reactions) lines.push(`\nReactions: ${message.reactions}`);
     return { block: lines.join('\n'), author };
   }
@@ -569,7 +598,7 @@ var ScrapLLMTelegram = typeof ScrapLLMTelegram !== 'undefined' ? ScrapLLMTelegra
       `# ${kindLabel(info)}`,
       '',
       '**Source:** Telegram',
-      `**Kind:** ${info.kind === 'private' ? 'private chat' : info.kind}`,
+      `**Kind:** ${info.kind === 'private' ? 'private chat' : info.kind === 'bot' ? 'bot chat' : info.kind}`,
       `**Messages:** ${messages.length}${truncated ? ' (most recent)' : ''}`,
       `**Link:** ${window.location.href}`
     ];

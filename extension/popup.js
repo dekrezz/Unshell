@@ -666,6 +666,7 @@ function telegramButtonLabel(info) {
   const kindWord = info.kind === "topic" ? "topic"
     : info.kind === "channel" ? "channel"
     : info.kind === "group" ? "group"
+    : info.kind === "bot" ? "bot"
     : "chat";
   const name = (info.kind === "topic" && info.topicName) ? info.topicName : info.title;
   const trimmed = (name || "Telegram").length > 22 ? (name || "").slice(0, 21) + "…" : (name || "Telegram");

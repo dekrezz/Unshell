@@ -441,6 +441,10 @@ var ScrapLLMReddit = typeof ScrapLLMReddit !== 'undefined' ? ScrapLLMReddit : (f
 
     let requests = 0;
     let unreachable = 0;
+    // A request that failed is not the same as a branch Reddit keeps behind its
+    // own permalink: one means the copy is short because the network broke, the
+    // other that it was never on offer. Only the first is worth alarming about.
+    let failedRequests = 0;
 
     while (moreNodes.length && requests < MORE_REQUEST_BUDGET && Date.now() < deadline) {
       // Every comment already in hand counts against the ceiling: past it,
@@ -474,6 +478,7 @@ var ScrapLLMReddit = typeof ScrapLLMReddit !== 'undefined' ? ScrapLLMReddit : (f
         } catch (error) {
           logger.error('Reddit collapsed replies could not be fetched', error);
           unreachable += batch.length;
+          failedRequests += 1;
         }
         if (Date.now() >= deadline) break;
       }
@@ -484,8 +489,8 @@ var ScrapLLMReddit = typeof ScrapLLMReddit !== 'undefined' ? ScrapLLMReddit : (f
       unreachable += Number(node.data && node.data.count) || 0;
     }
 
-    logger.log('Reddit collapsed replies expanded', { requests, unreachable, total: byId.size });
-    return unreachable;
+    logger.log('Reddit collapsed replies expanded', { requests, unreachable, failedRequests, total: byId.size });
+    return { unreachable, failedRequests };
   }
 
   function renderCommentTree(children, parentPath, state) {
@@ -530,7 +535,9 @@ var ScrapLLMReddit = typeof ScrapLLMReddit !== 'undefined' ? ScrapLLMReddit : (f
     return lines.join('\n').replace(/\n{3,}/g, '\n\n');
   }
 
-  function renderThread(json, settings, unreachable) {
+  function renderThread(json, settings, expansion) {
+    const unreachable = (expansion && expansion.unreachable) || 0;
+    const failedRequests = (expansion && expansion.failedRequests) || 0;
     const post = json && json[0] && json[0].data && json[0].data.children &&
                  json[0].data.children[0] && json[0].data.children[0].data;
     if (!post) throw new Error('Reddit JSON did not contain a post');
@@ -545,6 +552,18 @@ var ScrapLLMReddit = typeof ScrapLLMReddit !== 'undefined' ? ScrapLLMReddit : (f
     };
     const commentsMarkdown = renderCommentTree(commentChildren, '', state);
 
+    // Silence is the worst outcome here. If the thread has comments and none of
+    // them arrived, the copy would be a post and nothing else — which looks
+    // like a thread with no discussion rather than like a failure, and gets
+    // pasted into a model as though it were the whole story.
+    if (state.rendered === 0 && Number(post.num_comments) > 0) {
+      throw new Error(
+        `Reddit returned the post but none of its ${formatNumber(post.num_comments)} comments` +
+        (failedRequests ? ' — the requests for them failed, so this is a connection problem.' : '.') +
+        ' Nothing was copied; reload the thread and try again.'
+      );
+    }
+
     const sortLabel = sortDisplayName(resolveSort(settings));
     const sections = [
       renderPostHeader(post),
@@ -558,6 +577,14 @@ var ScrapLLMReddit = typeof ScrapLLMReddit !== 'undefined' ? ScrapLLMReddit : (f
         state.deleted > 0 ? `, ${formatNumber(state.deleted)} deleted and dropped` : ''
       }, sorted by ${sortLabel})`
     ];
+
+    if (failedRequests > 0) {
+      // At the top, not in a footnote: whoever pastes this needs to know before
+      // reading it that part of the thread is missing for a mundane reason.
+      sections.splice(1, 0,
+        `> **Incomplete copy.** ${formatNumber(failedRequests)} request${failedRequests === 1 ? '' : 's'} for collapsed replies failed, ` +
+        `so ${formatNumber(unreachable)} repl${unreachable === 1 ? 'y is' : 'ies are'} missing from what follows. Check the connection and copy again.`);
+    }
 
     sections.push(commentsMarkdown.trim() || '_No comments._');
 
@@ -909,16 +936,18 @@ var ScrapLLMReddit = typeof ScrapLLMReddit !== 'undefined' ? ScrapLLMReddit : (f
         // Fill in the branches Reddit collapsed before rendering, so the copy
         // matches the conversation rather than stopping at the first
         // "N more replies".
-        let unreachable = 0;
+        let expansion = { unreachable: 0, failedRequests: 0 };
         const postId = POST_PATH_RE.exec(window.location.pathname);
         if (postId) {
           try {
-            unreachable = await expandCollapsedReplies(json, options, postId[1]);
+            expansion = await expandCollapsedReplies(json, options, postId[1]);
           } catch (error) {
             logger.error('Reddit collapsed-reply expansion failed', error);
+            // The expansion itself dying is a failed request like any other.
+            expansion = { unreachable: 0, failedRequests: 1 };
           }
         }
-        return renderThread(json, options, unreachable);
+        return renderThread(json, options, expansion);
       }
       const listing = renderListing(json, options);
       if (listing) return listing;
