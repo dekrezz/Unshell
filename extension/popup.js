@@ -1402,23 +1402,41 @@ function toggleConvertMenu() {
 }
 
 // Event Listeners
-document.addEventListener("DOMContentLoaded", async () => {
+// Every startup step is isolated. They used to run in a row, ahead of the code
+// that binds the buttons, so one failure left a popup where nothing responded
+// at all — the theme toggle included. A step that throws now costs only itself,
+// and a step that rejects is reported rather than stopping the rest.
+function safely(label, run) {
+  try {
+    const result = run();
+    if (result && typeof result.catch === "function") {
+      result.catch((error) => console.error(`ScrapLLM: ${label} failed`, error));
+    }
+  } catch (error) {
+    console.error(`ScrapLLM: ${label} failed`, error);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
   // Feedback on pointer-down, gestures available from the first frame.
-  Motion.pressable(
+  safely("press feedback", () => Motion.pressable(
     document,
     "button, a.icon-btn, .setting-option, .split-btn-menu-item"
-  );
-  initNavGestures();
-  renderNav(0);
+  ));
+  safely("nav gestures", initNavGestures);
+  safely("nav", () => renderNav(0));
 
-  initTheme();
-  updateShortcutDisplay();
-  initResearch();
-  await loadSettings();
-  initSelectionAction();
-  initChatAction();
-  initTelegramAction();
-  initAbout();
+  safely("theme", initTheme);
+  safely("shortcuts", updateShortcutDisplay);
+  safely("research", initResearch);
+  // Not awaited: the buttons below must be wired whether or not stored
+  // settings can be read. Firefox refuses storage.sync for an add-on loaded
+  // with a temporary id, and that refusal used to take the whole popup with it.
+  safely("settings", loadSettings);
+  safely("selection action", initSelectionAction);
+  safely("chat action", initChatAction);
+  safely("telegram action", initTelegramAction);
+  safely("about", initAbout);
 
   // Detect multi-tab selection (non-blocking, runs in background)
   // UI defaults to single-tab mode, then switches if multiple tabs detected
