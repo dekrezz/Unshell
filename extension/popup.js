@@ -144,6 +144,7 @@ const backToMainBtn = document.getElementById("backToMainBtn");
 // DOM elements - Theme
 const lightThemeBtn = document.getElementById("lightThemeBtn");
 const darkThemeBtn = document.getElementById("darkThemeBtn");
+const autoThemeBtn = document.getElementById("autoThemeBtn");
 const bodyTag = document.querySelector("body");
 
 // DOM elements - Settings
@@ -152,6 +153,11 @@ const quickConvertShortcut = document.getElementById("quickConvertShortcut");
 const downloadShortcut = document.getElementById("downloadShortcut");
 
 const THEME_KEY = "scrapllm-theme";
+// Which of the three the user actually picked: "light", "dark" or "auto".
+// THEME_KEY alone could not answer that — older builds wrote it on every start,
+// so a popup that had merely *shown* a theme was indistinguishable from one the
+// user had chosen, and "follow the browser" could never come back on.
+const THEME_CHOICE_KEY = "scrapllm-theme-choice";
 const THEMES = { DARK: "dark", LIGHT: "light" };
 
 // Get all settings elements
@@ -326,9 +332,12 @@ function setTheme(theme, options) {
   bodyTag.classList.toggle("dark-theme", isDark);
   bodyTag.classList.toggle("light-theme", !isDark);
 
-  // Update theme buttons
-  lightThemeBtn.classList.toggle("active", !isDark);
-  darkThemeBtn.classList.toggle("active", isDark);
+  // The highlighted button is the *choice*, not the theme on screen: under
+  // "auto" the popup may be dark while the chosen option is still auto.
+  const choice = (options && options.choice) || localStorage.getItem(THEME_CHOICE_KEY) || "auto";
+  if (autoThemeBtn) autoThemeBtn.classList.toggle("active", choice === "auto");
+  lightThemeBtn.classList.toggle("active", choice === THEMES.LIGHT);
+  darkThemeBtn.classList.toggle("active", choice === THEMES.DARK);
 
   // Following the system is a state of its own, not a third theme: the class
   // says which one is showing, storage says whether the user ever chose. Saving
@@ -337,23 +346,45 @@ function setTheme(theme, options) {
   if (!options || options.remember !== false) localStorage.setItem(THEME_KEY, theme);
 }
 
+// Picking light or dark pins it; picking auto hands control back to the browser.
+function chooseTheme(choice) {
+  localStorage.setItem(THEME_CHOICE_KEY, choice);
+  if (choice === "auto") {
+    localStorage.removeItem(THEME_KEY);
+    applySystemTheme();
+  } else {
+    setTheme(choice, { choice });
+  }
+}
+
+function applySystemTheme() {
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  setTheme(prefersDark ? THEMES.DARK : THEMES.LIGHT, { remember: false, choice: "auto" });
+}
+
 function initTheme() {
-  const userThemePreference = localStorage.getItem(THEME_KEY);
-  if (userThemePreference === THEMES.DARK || userThemePreference === THEMES.LIGHT) {
-    setTheme(userThemePreference);
+  // A stored theme with no stored choice is a leftover from a build that saved
+  // one on every start. Treating it as a decision is what left people stuck on
+  // light forever, so it is discarded and the browser decides again.
+  let choice = localStorage.getItem(THEME_CHOICE_KEY);
+  if (choice !== THEMES.LIGHT && choice !== THEMES.DARK && choice !== "auto") {
+    choice = "auto";
+    localStorage.setItem(THEME_CHOICE_KEY, choice);
+    localStorage.removeItem(THEME_KEY);
+  }
+
+  if (choice === THEMES.LIGHT || choice === THEMES.DARK) {
+    setTheme(choice, { choice });
     return;
   }
 
-  // Nobody has chosen, so follow the browser. Defaulting to light meant a
-  // white popup opening over a dark browser, every time.
-  const query = window.matchMedia("(prefers-color-scheme: dark)");
-  const apply = () => setTheme(query.matches ? THEMES.DARK : THEMES.LIGHT, { remember: false });
-  apply();
+  applySystemTheme();
 
   // Keep following it while the popup is open — the OS can flip at sunset.
+  const query = window.matchMedia("(prefers-color-scheme: dark)");
   if (typeof query.addEventListener === "function") {
     query.addEventListener("change", () => {
-      if (!localStorage.getItem(THEME_KEY)) apply();
+      if (localStorage.getItem(THEME_CHOICE_KEY) === "auto") applySystemTheme();
     });
   }
 }
@@ -1547,8 +1578,9 @@ document.addEventListener("DOMContentLoaded", () => {
   backToMainBtn.addEventListener("click", showMainView);
 
   // Theme buttons
-  lightThemeBtn.addEventListener("click", () => setTheme(THEMES.LIGHT));
-  darkThemeBtn.addEventListener("click", () => setTheme(THEMES.DARK));
+  lightThemeBtn.addEventListener("click", () => chooseTheme(THEMES.LIGHT));
+  darkThemeBtn.addEventListener("click", () => chooseTheme(THEMES.DARK));
+  if (autoThemeBtn) autoThemeBtn.addEventListener("click", () => chooseTheme("auto"));
 
   // Save settings when changed
   contentScopeRadios.forEach((radio) => {
