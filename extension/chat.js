@@ -518,19 +518,114 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
   // more, and each answer is appended to the same column; the follow-up
   // questions are rendered as headings whose text Google localises, so they are
   // read from the transcript rather than matched by a phrase.
+  // Google marks each turn with its own heading — the question at level 2, the
+  // answer at level 3 — which is the only per-turn structure the page has. The
+  // headings exist for screen readers, so their wording is localised and cannot
+  // be matched by phrase; the *levels* are what the transcript is cut along.
+  function googleTurnHeadings(main) {
+    const headings = Array.from(
+      main.querySelectorAll('h1, h2, h3, h4, [role="heading"]')
+    );
+    return headings
+      .map(node => ({ node, level: googleHeadingLevel(node) }))
+      .filter(entry => entry.level === 2 || entry.level === 3);
+  }
+
+  function googleHeadingLevel(node) {
+    const explicit = node.getAttribute('aria-level');
+    if (explicit) return Number(explicit);
+    const match = /^H([1-6])$/.exec(node.tagName || '');
+    return match ? Number(match[1]) : 0;
+  }
+
+  // A heading reads "You said: <question>" or "AI Mode reply for <question>",
+  // both localised. Everything up to the first colon is the label, and the rest
+  // is the question — but a question may itself contain a colon, so only a
+  // short leading label is treated as one.
+  function googleHeadingText(node) {
+    const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
+    const colon = text.indexOf(':');
+    if (colon > 0 && colon <= 24) return text.slice(colon + 1).trim();
+    return text;
+  }
+
+  // Google closes every answer with the same handful of controls. They are
+  // buttons and status lines rather than prose, and they are localised, so they
+  // are matched by what they are — a control, a file counter, a copy status —
+  // rather than by their wording.
+  const GOOGLE_FURNITURE = /^(copied to clipboard|failed to copy|show all|\d+ files?|shared|transcribing)/i;
+
+  function googleAnswerFromNodes(nodes, createTurndown) {
+    const holder = document.createElement('div');
+    for (const node of nodes) holder.appendChild(node.cloneNode(true));
+
+    holder.querySelectorAll('button, [role="button"], img[src^="data:"]').forEach(n => n.remove());
+    // Status lines Google leaves behind after its buttons are gone.
+    holder.querySelectorAll('div, span, p').forEach(n => {
+      if (n.children.length === 0 && GOOGLE_FURNITURE.test((n.textContent || '').trim())) n.remove();
+    });
+
+    let markdown = '';
+    try {
+      markdown = createTurndown ? createTurndown().turndown(holder.innerHTML) : holder.textContent;
+    } catch (error) {
+      logger.error('Turndown failed on an AI Mode turn', error);
+      markdown = holder.textContent;
+    }
+    return String(markdown || '')
+      .split('\n')
+      .filter(line => !GOOGLE_FURNITURE.test(line.trim()))
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
   function extractGoogleAiMode(createTurndown) {
     const main = document.querySelector('[data-container-id="main-col"]');
     if (!main) return null;
 
     const query = new URLSearchParams(window.location.search).get('q') || '';
-    const answer = googleAnswerMarkdown(main, createTurndown);
-    if (!answer) return null;
+    const turns = googleTurnHeadings(main);
 
+    // Every level-2 heading opens a turn; the level-3 heading under it opens
+    // the answer, and the answer runs until the next turn begins.
     const messages = [];
-    if (query.trim()) messages.push({ role: 'user', text: query.trim(), time: '' });
-    messages.push({ role: 'assistant', text: answer, time: '' });
+    for (let i = 0; i < turns.length; i++) {
+      if (turns[i].level !== 2) continue;
+      const question = googleHeadingText(turns[i].node);
 
-    logger.log('Google AI Mode captured', { question: query.length, answer: answer.length });
+      // Google gives its own sections a level-2 heading too — the source list,
+      // for one. A turn is a question *with* an answer under it, so a heading
+      // with no level-3 heading before the next turn is page furniture, not
+      // something the user said.
+      const answerHeading = turns[i + 1] && turns[i + 1].level === 3 ? turns[i + 1] : null;
+      if (!answerHeading) continue;
+      if (GOOGLE_FURNITURE.test(question)) continue;
+      const nextTurn = turns.slice(i + 1).find(entry => entry.level === 2);
+      const from = answerHeading.node;
+
+      const nodes = [];
+      for (let node = from.nextElementSibling; node; node = node.nextElementSibling) {
+        if (nextTurn && (node === nextTurn.node || node.contains(nextTurn.node))) break;
+        nodes.push(node);
+      }
+      const answer = googleAnswerFromNodes(nodes, createTurndown);
+
+      if (question) messages.push({ role: 'user', text: question, time: '' });
+      if (answer) messages.push({ role: 'assistant', text: answer, time: '' });
+    }
+
+    // No per-turn headings: a signed-out page, or a build that dropped them.
+    // The old reading still holds — the question is in the URL and the column
+    // is one answer — so it stands rather than returning nothing.
+    if (!messages.length) {
+      const answer = googleAnswerMarkdown(main, createTurndown);
+      if (!answer) return null;
+      if (query.trim()) messages.push({ role: 'user', text: query.trim(), time: '' });
+      messages.push({ role: 'assistant', text: answer, time: '' });
+    }
+
+    logger.log('Google AI Mode captured', { turns: turns.length, messages: messages.length });
 
     return {
       title: query.trim() || document.title,
@@ -809,7 +904,10 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
     inspect,
     convert,
     // Exposed for tests
-    _internals: { groupExchanges, resolveLimit, walkActiveBranch, roleFromHints, collectTurns, render, SITES }
+    _internals: {
+      extractGoogleAiMode,
+      googleTurnHeadings,
+      googleHeadingText, groupExchanges, resolveLimit, walkActiveBranch, roleFromHints, collectTurns, render, SITES }
   };
 })();
 

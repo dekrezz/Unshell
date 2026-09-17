@@ -601,6 +601,25 @@ var ScrapLLMConvert = typeof ScrapLLMConvert !== 'undefined' ? ScrapLLMConvert :
     }
   }
 
+  // A data: URI is the image itself, inlined — favicons and thumbnails on a
+  // results page routinely run to several kilobytes of base64 each. Converted
+  // literally they bury the text they illustrate under walls of gibberish that
+  // costs real tokens and says nothing. The alt text, where there is one, is
+  // the part worth keeping.
+  function removeDataUriImages(content) {
+    const images = content.querySelectorAll('img[src^="data:"]');
+    for (let i = images.length - 1; i >= 0; i--) {
+      const image = images[i];
+      const alt = (image.getAttribute('alt') || '').trim();
+      if (!image.parentNode) continue;
+      if (alt) {
+        image.parentNode.replaceChild(content.ownerDocument.createTextNode(alt), image);
+      } else {
+        image.parentNode.removeChild(image);
+      }
+    }
+  }
+
   function cleanContent(ctx, content, settings) {
     // For fullPage and selection scopes, extract iframes from cloned content.
     // For mainContent scope, this was already done before Readability.
@@ -630,6 +649,7 @@ var ScrapLLMConvert = typeof ScrapLLMConvert !== 'undefined' ? ScrapLLMConvert :
     });
 
     removeRedditAds(content, ctx.url);
+    removeDataUriImages(content);
     removeIconLigatures(content);
 
     // Remove empty paragraphs and divs
