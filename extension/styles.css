@@ -2243,3 +2243,17 @@ input[type="checkbox"] {
 .telegram-date-input::placeholder {
   color: var(--label-tertiary);
 }
+
+/* An icon inside a control is decoration, not a target. Firefox delivers
+   pointerdown and mouseup to the <svg> rather than to the button, and when a
+   control contains nothing but an icon — the theme switcher — no click event is
+   produced at all, so the button looks alive and does nothing. Making the
+   graphics transparent to the pointer hands both events back to the button. */
+button svg,
+button img,
+.theme-btn .theme-icon-small,
+.btn-icon,
+.caret-icon,
+.theme-icon-small {
+  pointer-events: none;
+}

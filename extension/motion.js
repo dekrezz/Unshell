@@ -206,28 +206,40 @@ var ScrapLLMMotion = typeof ScrapLLMMotion !== 'undefined' ? ScrapLLMMotion : (f
     let pointerId = null;
     let origin = null;
     let engaged = false;
+    let captured = false;
 
     const point = (event) => (axis === 'y' ? event.clientY : event.clientX);
     const cross = (event) => (axis === 'y' ? event.clientX : event.clientY);
+
+    // Capture retargets every later event to this element, which is what lets a
+    // surface that is already animating stay with the finger. It also means the
+    // browser fires the eventual click on *this* element instead of on whatever
+    // was pressed — so pressing a button inside the surface did nothing at all.
+    // The theme switcher was the clearest victim: a control holding only an
+    // icon, whose click never arrived.
+    function capture(event) {
+      if (captured || typeof element.setPointerCapture !== 'function') return;
+      try {
+        element.setPointerCapture(event.pointerId);
+        captured = true;
+      } catch (e) {
+        // A pointer that ended between the hit test and here: the gesture is
+        // simply evaluated without capture, as before.
+      }
+    }
+
+    // A press that starts on a control is a press, not a drag. Capturing it
+    // immediately would swallow the click; the gesture can still claim the
+    // pointer later, once the finger has actually moved far enough to engage.
+    const INTERACTIVE = 'button, a, input, select, textarea, label, [role="button"], [role="radio"], [role="menuitem"]';
 
     function onPointerDown(event) {
       if (pointerId !== null || event.button > 0) return;
       if (opts.canStart && !opts.canStart(event)) return;
       pointerId = event.pointerId;
-      // Captured here, not once the gesture engages: a surface that is already
-      // animating keeps moving under the finger, and without capture the very
-      // next pointermove lands somewhere else and the element never hears it —
-      // which is why a closing sheet could not be caught. Capture retargets the
-      // whole sequence to this element, so the gesture is evaluated against the
-      // finger rather than against wherever the surface happens to be.
-      if (typeof element.setPointerCapture === 'function') {
-        try {
-          element.setPointerCapture(event.pointerId);
-        } catch (e) {
-          // A pointer that ended between the hit test and here: the gesture is
-          // simply evaluated without capture, as before.
-        }
-      }
+      captured = false;
+      const onControl = event.target && event.target.closest && event.target.closest(INTERACTIVE);
+      if (!onControl) capture(event);
       origin = { main: point(event), cross: cross(event), time: now() };
       engaged = false;
       history.length = 0;
@@ -249,10 +261,15 @@ var ScrapLLMMotion = typeof ScrapLLMMotion !== 'undefined' ? ScrapLLMMotion : (f
           if (element.hasPointerCapture && element.hasPointerCapture(pointerId)) {
             element.releasePointerCapture(pointerId);
           }
+          captured = false;
           pointerId = null;
           return;
         }
         engaged = true;
+        // Now that this really is a drag, take the pointer: a press that began
+        // on a control has not been captured until this moment, so its click
+        // survived right up to the point where it stopped being a click.
+        capture(event);
         // Re-anchor so the element doesn't jump by the threshold distance.
         origin.main = value - Math.sign(delta) * threshold;
         if (opts.onStart) opts.onStart({ delta: value - origin.main, event });
@@ -268,6 +285,7 @@ var ScrapLLMMotion = typeof ScrapLLMMotion !== 'undefined' ? ScrapLLMMotion : (f
       const wasEngaged = engaged;
       pointerId = null;
       engaged = false;
+      captured = false;
       if (element.hasPointerCapture && element.hasPointerCapture(event.pointerId)) {
         element.releasePointerCapture(event.pointerId);
       }
