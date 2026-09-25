@@ -693,6 +693,13 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
         block = block.parentElement;
       }
       if (!isFurniture(block)) break;
+      // A short phrase inside a real paragraph (a bold span, a citation label)
+      // has a parent that says much more than it does. A disclaimer's own
+      // wrapper does not: climbing above already stopped at the whole label.
+      const parentText = block.parentElement && block.parentElement !== root
+        ? (block.parentElement.textContent || '').trim()
+        : '';
+      if (parentText.length > FURNITURE_MAX_CHARS && parentText !== (block.textContent || '').trim()) break;
       block.remove();
     }
   }
@@ -704,6 +711,92 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
       if (child.nodeType === 3) length += (child.nodeValue || '').trim().length;
     }
     return length;
+  }
+
+  // The address bar carries a fresh tracking token on every load. The page
+  // itself is the query in AI Mode, and that is the URL worth citing.
+  function pageUrl() {
+    try {
+      const loc = new URL(window.location.href);
+      const params = new URLSearchParams(loc.search);
+      if (params.get('udm') === '50') {
+        return loc.origin + '/search?udm=50&q=' + encodeURIComponent(params.get('q') || '');
+      }
+    } catch (error) {
+      // A URL the browser handed us and still could not parse: keep it whole.
+    }
+    return window.location.href;
+  }
+
+  // Citation chips are an empty link (the icon) next to a button that says
+  // the source name. Left alone, Turndown writes [](/goto?url=…), and the
+  // token in that path is not an address. The name the pill already shows is.
+  // The pill is only the chip when every child is the empty link, a button, or
+  // hidden decoration. Anything else means the link sits inside the sentence,
+  // and replacing the parent would delete the words around it.
+  function isChipOnly(pill, link) {
+    const children = pill.childNodes;
+    for (let i = 0; i < children.length; i++) {
+      const node = children[i];
+      if (node === link) continue;
+      if (node.nodeType === 8) continue;
+      if (node.nodeType === 3 && !(node.nodeValue || '').trim()) continue;
+      if (node.nodeType === 1 && (node.getAttribute('aria-hidden') === 'true' || node.tagName === 'BUTTON')) continue;
+      return false;
+    }
+    return true;
+  }
+
+  function replaceCitationChips(clone) {
+    clone.querySelectorAll('a[href*="goto?url="]').forEach(link => {
+      if ((link.textContent || '').trim()) return;
+      const pill = link.parentElement;
+      const aria = (link.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim();
+      let label = aria;
+      let host = link;
+      if (pill && pill !== clone && isChipOnly(pill, link)) {
+        label = (pill.innerText || '').replace(/\s+/g, ' ').trim() || aria;
+        host = pill;
+      }
+      if (!label || label.length > 80) {
+        link.remove();
+        return;
+      }
+      host.replaceWith(clone.ownerDocument.createTextNode(' (' + label + ')'));
+    });
+  }
+
+  // Section titles are role="heading" divs. Turndown does not treat a role as
+  // a heading, so the outline was coming out as plain lines between rules.
+  function promoteHeadings(clone) {
+    clone.querySelectorAll('[role="heading"]').forEach(node => {
+      const level = googleHeadingLevel(node);
+      if (level < 2 || level > 4) return;
+      const heading = clone.ownerDocument.createElement('h' + level);
+      heading.textContent = (node.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!heading.textContent) return;
+      node.replaceWith(heading);
+    });
+  }
+
+  // The disclaimer and the "a copy of this chat will be included" notice are
+  // short lines with no markup, in whatever language the page is in, and they
+  // sit after the answer. A real closing paragraph of the answer runs well
+  // past this, which is the same bound the DOM trim uses.
+  function trimTrailingLines(markdown) {
+    const lines = String(markdown || '').split('\n');
+    let removed = 0;
+    while (lines.length && removed < FURNITURE_MAX_BLOCKS) {
+      const last = lines[lines.length - 1].trim();
+      if (!last) {
+        lines.pop();
+        continue;
+      }
+      if (last.length > FURNITURE_MAX_CHARS || /^[#>*\-+|]/.test(last) || last.includes('](')) break;
+      lines.pop();
+      removed++;
+    }
+    return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
   }
 
   function googleAnswerMarkdown(main, createTurndown) {
@@ -724,6 +817,15 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
     clone.querySelectorAll('[role="dialog"], [role="alertdialog"], [aria-modal="true"], [role="menu"], [role="tooltip"], [role="alert"], [role="status"]')
       .forEach(node => node.remove());
 
+    replaceCitationChips(clone);
+    promoteHeadings(clone);
+    clone.querySelectorAll('hr').forEach(node => node.remove());
+    // Share-sheet titles. The answer's own sections are level 2–3, promoted
+    // above; a short h1 in this column is the dialog, not the answer.
+    clone.querySelectorAll('h1').forEach(node => {
+      if ((node.textContent || '').trim().length < FURNITURE_MAX_CHARS) node.remove();
+    });
+
     clone.querySelectorAll('button, [role="button"], [role="navigation"], [role="listbox"], svg, style, script')
       .forEach(node => node.remove());
 
@@ -741,14 +843,131 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
       if (!(link.textContent || '').trim()) link.remove();
     });
     trimGoogleFurniture(clone);
+    let markdown = '';
     if (createTurndown) {
       try {
-        return createTurndown().turndown(clone.innerHTML).trim();
+        markdown = createTurndown().turndown(clone.innerHTML).trim();
       } catch (error) {
         logger.error('Turndown failed on the AI Mode answer', error);
       }
     }
-    return (clone.textContent || '').trim();
+    if (!markdown) markdown = (clone.textContent || '').trim();
+    return trimTrailingLines(markdown);
+  }
+
+  // The source column is a second list of the same cards: the one on screen,
+  // and a hidden copy whose text nodes are sn._setImageSrc(…, 'data:image…')
+  // calls. That second copy is what a full-page conversion dumps as base64.
+  // The card's own link is /goto?url=<opaque>, which is not an address either;
+  // the publisher site is on the favicon URL beside the card.
+  function publisherSite(card) {
+    const html = card.innerHTML || '';
+    const found = html.match(/https?:\/\/[a-z0-9.-]+\.[a-z]{2,}[^"'\\\s<]*/gi) || [];
+    for (let i = 0; i < found.length; i++) {
+      let host = '';
+      let origin = '';
+      try {
+        const url = new URL(found[i]);
+        host = url.hostname;
+        origin = url.origin;
+      } catch (error) {
+        continue;
+      }
+      if (/gstatic|google|ggpht|youtube|googleapis|googleusercontent/i.test(host)) continue;
+      return origin;
+    }
+    return '';
+  }
+
+  function sourceTitle(link) {
+    return (link.getAttribute('aria-label') || '')
+      .replace(/\.\s+[^.0-9]{1,48}\.\s*$/, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function googleSourceEntries() {
+    const column = document.querySelector('[data-container-id="rhs-col"]');
+    if (!column) return [];
+    const seen = new Set();
+    const entries = [];
+    column.querySelectorAll('li').forEach(card => {
+      const link = card.querySelector('a[href*="goto?url="]');
+      if (!link) return;
+      const key = link.getAttribute('href') || '';
+      if (!key || seen.has(key)) return;
+      const title = sourceTitle(link);
+      if (!title) return;
+      seen.add(key);
+      const lines = (card.innerText || '').split('\n').map(line => line.trim()).filter(Boolean);
+      const dirty = /setImageSrc|data:image/i.test(card.textContent || '') || lines.length < 2;
+      let publisher = '';
+      let snippet = '';
+      if (!dirty) {
+        publisher = lines[0] || '';
+        if (publisher === title) publisher = '';
+        snippet = lines.length > 2 ? lines.slice(2).join(' ') : (lines[1] && lines[1] !== title ? lines[1] : '');
+      }
+      entries.push({
+        title,
+        publisher,
+        snippet,
+        site: publisherSite(card)
+      });
+    });
+    return entries;
+  }
+
+  function escapeLinkText(text) {
+    return text.replace(/[\[\]]/g, '');
+  }
+
+  function googleSourcesMarkdown() {
+    const entries = googleSourceEntries();
+    if (!entries.length) return '';
+    const items = entries.map(entry => {
+      const title = escapeLinkText(entry.title);
+      const linked = entry.site ? `[${title}](${entry.site})` : title;
+      const who = entry.publisher && entry.publisher !== entry.title ? ` — ${entry.publisher}` : '';
+      const snippet = entry.snippet ? `\n  ${entry.snippet}` : '';
+      return `- ${linked}${who}${snippet}`;
+    });
+    return `## Sources\n\n${items.join('\n')}`;
+  }
+
+  // The search page around an AI Mode answer is chrome: the tab strip, the
+  // sign-in button, the voice-search prompts, and a hidden copy of the source
+  // list that is mostly base64. The page worth copying is the answer, and on
+  // a full-page copy the source column beside it.
+  function convertPage(settings, deps) {
+    logger = (deps && deps.logger) || logger;
+    const createTurndown = deps && deps.createTurndown;
+    const site = getSite(window.location);
+    if (!site || site.id !== 'google-ai' || !isThreadUrl(site, window.location)) return null;
+
+    const main = document.querySelector('[data-container-id="main-col"]');
+    if (!main) return null;
+    const answer = googleAnswerMarkdown(main, createTurndown);
+    if (!answer) return null;
+
+    const query = (new URLSearchParams(window.location.search).get('q') || '').trim() || document.title;
+    let markdown = `# ${query}\n\n${answer}`;
+    if (settings && settings.contentScope === 'fullPage') {
+      const sources = googleSourcesMarkdown();
+      if (sources) markdown += `\n\n${sources}`;
+    }
+
+    return {
+      markdown,
+      url: pageUrl(),
+      articleData: {
+        title: query,
+        author: '',
+        siteName: site.label,
+        publishedTime: '',
+        excerpt: answer.slice(0, 300)
+      }
+    };
   }
 
   // ==========================================================================
@@ -805,7 +1024,7 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
     const header = [
       `# ${conversation.title || 'Conversation'}`,
       '',
-      `**Source:** ${label} — ${window.location.href}`,
+      `**Source:** ${label} — ${pageUrl()}`,
       `**Exchanges:** ${kept.length} of ${groups.length}${limit === Infinity ? '' : ` (last ${Math.min(limit, groups.length)})`}`,
       `**Messages:** ${messages.length}`,
       `**Exported:** ${formatTime(new Date().toISOString())}`
@@ -903,6 +1122,7 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
     getSite,
     inspect,
     convert,
+    convertPage,
     // Exposed for tests
     _internals: {
       extractGoogleAiMode,
