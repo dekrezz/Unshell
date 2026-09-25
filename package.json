@@ -1,6 +1,6 @@
 {
   "name": "scrapllm",
-  "version": "2.2.9",
+  "version": "2.2.10",
   "description": "Convert any webpage to clean Markdown for ChatGPT, Claude & Gemini. Multi-tab copy, token counter. 100% private.",
   "private": true,
   "scripts": {
