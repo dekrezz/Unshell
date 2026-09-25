@@ -514,14 +514,12 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
   // the question is in the URL's q parameter, and the answer is Google's own
   // result column, data-container-id="main-col", which has been that for years.
   //
-  // Signed out, the surface allows exactly one exchange. Signed in it allows
-  // more, and each answer is appended to the same column; the follow-up
-  // questions are rendered as headings whose text Google localises, so they are
-  // read from the transcript rather than matched by a phrase.
-  // Google marks each turn with its own heading — the question at level 2, the
-  // answer at level 3 — which is the only per-turn structure the page has. The
-  // headings exist for screen readers, so their wording is localised and cannot
-  // be matched by phrase; the *levels* are what the transcript is cut along.
+  // Signed out, the surface allows exactly one exchange. Signed in, a follow-up
+  // is a new result column, not a continuation of the first: the question is a
+  // level-2 heading outside that column, and the answer is the next
+  // data-container-id="main-col". Headings inside a column are the answer's
+  // own sections. A long thread also unmounts turns that are scrolled away, so
+  // the copy walks the scroller and keeps every turn it meets.
   function googleTurnHeadings(main) {
     const headings = Array.from(
       main.querySelectorAll('h1, h2, h3, h4, [role="heading"]')
@@ -580,52 +578,101 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
       .trim();
   }
 
-  function extractGoogleAiMode(createTurndown) {
-    const main = document.querySelector('[data-container-id="main-col"]');
-    if (!main) return null;
+  // A follow-up is not appended to the first column. Google mounts a new
+  // main-col for it, and the question is a level-2 heading *outside* that
+  // column — the headings inside a column are the answer's own sections.
+  // querySelector would keep the first column and drop every turn after it.
+  function googleQuestionHeadings() {
+    return Array.from(document.querySelectorAll('h1, h2, h3, h4, [role="heading"]'))
+      .filter(node => !node.closest('[data-container-id="main-col"]'))
+      .map(node => ({ node, level: googleHeadingLevel(node) }))
+      .filter(entry => entry.level === 2);
+  }
 
+  function columnAfter(question, nextQuestion, columns) {
+    return columns.find(column => {
+      const afterQuestion = question.compareDocumentPosition(column) & Node.DOCUMENT_POSITION_FOLLOWING;
+      if (!afterQuestion) return false;
+      if (!nextQuestion) return true;
+      return nextQuestion.compareDocumentPosition(column) & Node.DOCUMENT_POSITION_PRECEDING;
+    }) || null;
+  }
+
+  function googleScroller() {
+    const anchor = document.querySelector('[data-container-id="main-col"]');
+    let node = anchor && anchor.parentElement;
+    while (node && node !== document.documentElement) {
+      const style = window.getComputedStyle(node);
+      if (/(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight + 40) return node;
+      node = node.parentElement;
+    }
+    const root = document.scrollingElement;
+    if (root && root.scrollHeight > root.clientHeight + 40) return root;
+    return null;
+  }
+
+  function rememberTurns(createTurndown, kept) {
+    const columns = Array.from(document.querySelectorAll('[data-container-id="main-col"]'));
+    const questions = googleQuestionHeadings();
+    questions.forEach((entry, index) => {
+      const question = googleHeadingText(entry.node);
+      if (!question || GOOGLE_FURNITURE.test(question)) return;
+      const next = questions[index + 1] && questions[index + 1].node;
+      const column = columnAfter(entry.node, next, columns);
+      const answer = column ? googleAnswerMarkdown(column, createTurndown) : '';
+      if (!kept.has(question)) kept.set(question, answer);
+      else if (answer && !kept.get(question)) kept.set(question, answer);
+    });
+    return questions.length;
+  }
+
+  async function extractGoogleAiMode(createTurndown) {
     const query = new URLSearchParams(window.location.search).get('q') || '';
-    const turns = googleTurnHeadings(main);
-
-    // Every level-2 heading opens a turn; the level-3 heading under it opens
-    // the answer, and the answer runs until the next turn begins.
-    const messages = [];
-    for (let i = 0; i < turns.length; i++) {
-      if (turns[i].level !== 2) continue;
-      const question = googleHeadingText(turns[i].node);
-
-      // Google gives its own sections a level-2 heading too — the source list,
-      // for one. A turn is a question *with* an answer under it, so a heading
-      // with no level-3 heading before the next turn is page furniture, not
-      // something the user said.
-      const answerHeading = turns[i + 1] && turns[i + 1].level === 3 ? turns[i + 1] : null;
-      if (!answerHeading) continue;
-      if (GOOGLE_FURNITURE.test(question)) continue;
-      const nextTurn = turns.slice(i + 1).find(entry => entry.level === 2);
-      const from = answerHeading.node;
-
-      const nodes = [];
-      for (let node = from.nextElementSibling; node; node = node.nextElementSibling) {
-        if (nextTurn && (node === nextTurn.node || node.contains(nextTurn.node))) break;
-        nodes.push(node);
+    const scroller = googleScroller();
+    const saved = scroller ? scroller.scrollTop : window.scrollY;
+    const kept = new Map();
+    try {
+      const node = scroller || document.scrollingElement;
+      if (node) node.scrollTop = 0;
+      // A turn that is mounted only while it is near the viewport has to be
+      // visited. Two idle passes at the bottom means the walk has seen the
+      // thread that is actually rendered, including a one-exchange page.
+      let idle = 0;
+      for (let step = 0; step < 40 && idle < 2; step++) {
+        await new Promise(resolve => setTimeout(resolve, 60));
+        const before = kept.size;
+        rememberTurns(createTurndown, kept);
+        if (!node) break;
+        const max = Math.max(0, node.scrollHeight - node.clientHeight);
+        if (node.scrollTop >= max - 4) idle++;
+        else node.scrollTop = Math.min(max, node.scrollTop + Math.max(240, node.clientHeight * 0.85));
+        if (kept.size !== before) idle = 0;
       }
-      const answer = googleAnswerFromNodes(nodes, createTurndown);
+    } finally {
+      if (scroller) scroller.scrollTop = saved;
+      else window.scrollTo(0, saved);
+    }
 
-      if (question) messages.push({ role: 'user', text: question, time: '' });
+    const messages = [];
+    kept.forEach((answer, question) => {
+      messages.push({ role: 'user', text: question, time: '' });
       if (answer) messages.push({ role: 'assistant', text: answer, time: '' });
-    }
+    });
 
-    // No per-turn headings: a signed-out page, or a build that dropped them.
-    // The old reading still holds — the question is in the URL and the column
-    // is one answer — so it stands rather than returning nothing.
+    // No per-turn headings: a build that dropped them. The question is in the
+    // URL and every column still on the page is an answer, in order.
     if (!messages.length) {
-      const answer = googleAnswerMarkdown(main, createTurndown);
-      if (!answer) return null;
+      const columns = Array.from(document.querySelectorAll('[data-container-id="main-col"]'));
+      if (!columns.length) return null;
       if (query.trim()) messages.push({ role: 'user', text: query.trim(), time: '' });
-      messages.push({ role: 'assistant', text: answer, time: '' });
+      columns.forEach(column => {
+        const answer = googleAnswerMarkdown(column, createTurndown);
+        if (answer) messages.push({ role: 'assistant', text: answer, time: '' });
+      });
+      if (!messages.length) return null;
     }
 
-    logger.log('Google AI Mode captured', { turns: turns.length, messages: messages.length });
+    logger.log('Google AI Mode captured', { turns: kept.size, messages: messages.length });
 
     return {
       title: query.trim() || document.title,
@@ -939,19 +986,22 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
   // sign-in button, the voice-search prompts, and a hidden copy of the source
   // list that is mostly base64. The page worth copying is the answer, and on
   // a full-page copy the source column beside it.
-  function convertPage(settings, deps) {
+  async function convertPage(settings, deps) {
     logger = (deps && deps.logger) || logger;
     const createTurndown = deps && deps.createTurndown;
     const site = getSite(window.location);
     if (!site || site.id !== 'google-ai' || !isThreadUrl(site, window.location)) return null;
 
-    const main = document.querySelector('[data-container-id="main-col"]');
-    if (!main) return null;
-    const answer = googleAnswerMarkdown(main, createTurndown);
-    if (!answer) return null;
+    const captured = await extractGoogleAiMode(createTurndown);
+    if (!captured || !captured.messages.length) return null;
 
-    const query = (new URLSearchParams(window.location.search).get('q') || '').trim() || document.title;
-    let markdown = `# ${query}\n\n${answer}`;
+    const query = captured.title || document.title;
+    const body = [];
+    captured.messages.forEach(message => {
+      if (message.role === 'user') body.push(`## ${message.text}`);
+      else if (message.text) body.push(message.text);
+    });
+    let markdown = `# ${query}\n\n${body.join('\n\n')}`;
     if (settings && settings.contentScope === 'fullPage') {
       const sources = googleSourcesMarkdown();
       if (sources) markdown += `\n\n${sources}`;
@@ -965,7 +1015,7 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
         author: '',
         siteName: site.label,
         publishedTime: '',
-        excerpt: answer.slice(0, 300)
+        excerpt: (captured.messages.find(message => message.role === 'assistant') || captured.messages[0]).text.slice(0, 300)
       }
     };
   }
@@ -1040,6 +1090,7 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
 
     return {
       markdown: `${header}\n\n---\n\n${body}`,
+      url: pageUrl(),
       articleData: {
         title: conversation.title || document.title,
         author: '',
@@ -1107,9 +1158,14 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
     // A site with its own extractor knows something the generic reader cannot
     // work out from the markup alone.
     if (site && site.extract && isThreadUrl(site, window.location)) {
-      const captured = site.extract(createTurndown);
+      const captured = await site.extract(createTurndown);
       if (captured && captured.messages.length) {
-        return render(captured, site, settings || {});
+        // The thread is the whole page. A saved "last 10" would drop the start
+        // of an AI Mode conversation the user asked to copy in full.
+        const chatSettings = site.id === 'google-ai'
+          ? Object.assign({}, settings || {}, { chatExchangeLimit: 'all' })
+          : (settings || {});
+        return render(captured, site, chatSettings);
       }
     }
 

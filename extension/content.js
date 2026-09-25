@@ -800,7 +800,10 @@
       });
       if (chat) {
         return ScrapLLMConvert.postProcessMarkdown(
-          chat.markdown, settings, chat.articleData, pageContext());
+          chat.markdown, settings, chat.articleData, {
+            url: chat.url || window.location.href,
+            title: (chat.articleData && chat.articleData.title) || document.title
+          });
       }
       throw new Error('No conversation could be extracted from this page');
     }
@@ -845,7 +848,7 @@
         typeof ScrapLLMChat.convertPage === 'function') {
       let aiPage = null;
       try {
-        aiPage = ScrapLLMChat.convertPage(settings, {
+        aiPage = await ScrapLLMChat.convertPage(settings, {
           logger: {
             log: (message, data) => DebugLog.log(message, data),
             error: (message, error) => DebugLog.error(message, error)

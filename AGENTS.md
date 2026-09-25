@@ -108,7 +108,9 @@ path as an ordinary result page, so the registry entry carries a `query` guard
 (`udm=50`) alongside the path test; without it every Google search would offer to
 copy a conversation. Citation chips are icon-only links whose `href` is
 `/goto?url=<opaque>`, so the chip is replaced with the label the pill already
-shows (`Stripe +3`) rather than an empty link or that token. Copying the page
+shows (`Stripe +3`) rather than an empty link or that token. A follow-up is a new `main-col`, not more text in the first one, so Copy Chat
+walks every column (and scrolls the thread, because a long one unmounts turns
+that are off screen) and always exports the whole conversation. Copying the page
 (main content or full page) does not fall through to Readability or the body:
 both keep the search shell, and the hidden copy of the source list is base64
 image payloads. The answer comes from `main-col`. A full-page copy also appends
