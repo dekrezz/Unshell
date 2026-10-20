@@ -63,10 +63,10 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
       label: 'Google AI Mode',
       // google.com, google.co.uk, google.de… all serve it from /search, and the
       // udm parameter is what separates the AI conversation from a plain result
-      // page on the very same path.
+      // page on the very same path. /ai and /aimode are the entry points.
       host: /(^|\.)google\.[a-z]{2,3}(?:\.[a-z]{2})?$/i,
-      thread: /^\/search/i,
-      query: (search) => new URLSearchParams(search).get('udm') === '50',
+      thread: /^\/(?:search|ai(?:mode)?)(?:\/|$)/i,
+      query: isGoogleAiModeRoute,
       extract: extractGoogleAiMode
     },
     {
@@ -134,7 +134,7 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
     if (site.thread && !site.thread.test(loc.pathname)) return false;
     // Some surfaces live on a path they share with something else entirely and
     // are told apart by the query string.
-    if (site.query && !site.query(loc.search || '')) return false;
+    if (site.query && !site.query(loc.search || '', loc.pathname || '')) return false;
     return true;
   }
 
@@ -520,6 +520,33 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
   // data-container-id="main-col". Headings inside a column are the answer's
   // own sections. A long thread also unmounts turns that are scrolled away, so
   // the copy walks the scroller and keeps every turn it meets.
+
+  // AI Mode is /search?udm=50, on the same path as every ordinary search, and
+  // /ai or /aimode as an entry point. A conversation route also names *which*
+  // conversation — a question (q) or a saved thread (mtid) — so the empty AI
+  // Mode home, where there is nothing to copy, is not offered as one. mstk is
+  // not a name: it reads as a per-session token, and mtid already names the
+  // thread.
+  function isGoogleAiModeRoute(search, pathname) {
+    const params = new URLSearchParams(search || '');
+    const named = !!(compactText(params.get('q')) || params.get('mtid'));
+    if (/^\/ai(?:mode)?(?:\/|$)/i.test(pathname || '')) return named;
+    return params.get('udm') === '50' && named;
+  }
+
+  // Thrown when a page is the extractor's and it cannot read it. The message
+  // is written for the person who pressed the button, so content.js hands it
+  // to the popup as it is rather than as the generic failure.
+  function extractionError(message) {
+    const error = new Error(message);
+    error.verbatim = true;
+    return error;
+  }
+
+  function compactText(value) {
+    return String(value || '').replace(/\s+/g, ' ').trim();
+  }
+
   function googleTurnHeadings(main) {
     const headings = Array.from(
       main.querySelectorAll('h1, h2, h3, h4, [role="heading"]')
@@ -536,15 +563,39 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
     return match ? Number(match[1]) : 0;
   }
 
-  // A heading reads "You said: <question>" or "AI Mode reply for <question>",
-  // both localised. Everything up to the first colon is the label, and the rest
-  // is the question — but a question may itself contain a colon, so only a
-  // short leading label is treated as one.
-  function googleHeadingText(node) {
-    const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
-    const colon = text.indexOf(':');
-    if (colon > 0 && colon <= 24) return text.slice(colon + 1).trim();
-    return text;
+  // A question heading reads "You said: <question>", in the page's language.
+  // A short prefix before a colon is not proof of a label, because a question
+  // can hold its own ("Python: which library reads TOML?"), so the label is cut
+  // only where the page proves it is one: a question that is, whole, the one
+  // in the address bar proves there is no label on this page; otherwise the
+  // label is the prefix every question shares, the prefix in front of the
+  // question in the address bar, or the English label itself. A lone question
+  // on a saved thread in another language has none of these and keeps its
+  // label — a stray label is noise, a cut question is lost text.
+  const GOOGLE_LABEL = /^([^:：]{1,24})[:：]\s*([\s\S]+)$/;
+  const GOOGLE_ENGLISH_LABEL = /^you (?:said|asked)$/i;
+
+  function stripGoogleLabels(texts, query) {
+    const asked = compactText(query).toLowerCase();
+    if (asked && texts.some(text => text.toLowerCase() === asked)) return texts.slice();
+
+    const parts = texts.map(text => GOOGLE_LABEL.exec(text));
+    const labels = parts.map(match => (match ? match[1].trim() : ''));
+    let label = '';
+    if (texts.length > 1 && labels[0] && labels.every(each => each === labels[0])) label = labels[0];
+    if (!label && asked) {
+      const index = parts.findIndex(match => match && match[2].trim().toLowerCase() === asked);
+      if (index !== -1) label = labels[index];
+    }
+
+    return texts.map((text, index) => {
+      const match = parts[index];
+      if (!match) return text;
+      if ((label && labels[index] === label) || GOOGLE_ENGLISH_LABEL.test(labels[index])) {
+        return match[2].trim();
+      }
+      return text;
+    });
   }
 
   // Google closes every answer with the same handful of controls. They are
@@ -611,26 +662,55 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
     return null;
   }
 
-  function rememberTurns(createTurndown, kept) {
+  // The turns mounted right now, in page order. The question is kept as the
+  // page writes it, label and all: whether a prefix is a label is decided once
+  // the whole thread has been seen.
+  function googleMountedTurns(createTurndown) {
     const columns = Array.from(document.querySelectorAll('[data-container-id="main-col"]'));
     const questions = googleQuestionHeadings();
+    const turns = [];
     questions.forEach((entry, index) => {
-      const question = googleHeadingText(entry.node);
+      const question = compactText(entry.node.textContent);
       if (!question || GOOGLE_FURNITURE.test(question)) return;
       const next = questions[index + 1] && questions[index + 1].node;
       const column = columnAfter(entry.node, next, columns);
-      const answer = column ? googleAnswerMarkdown(column, createTurndown) : '';
-      if (!kept.has(question)) kept.set(question, answer);
-      else if (answer && !kept.get(question)) kept.set(question, answer);
+      turns.push({ question, answer: column ? googleAnswerMarkdown(column, createTurndown) : '' });
     });
-    return questions.length;
+    return turns;
+  }
+
+  // A turn whose column was not mounted yet has no answer, and matches the
+  // same question with one.
+  function sameGoogleTurn(a, b) {
+    return a.question === b.question && (!a.answer || !b.answer || a.answer === b.answer);
+  }
+
+  // Each pass of the walk sees the stretch of the thread that is mounted. The
+  // walk runs top to bottom, so a stretch begins inside the one before it or
+  // right after it: it is laid over the longest tail of what is kept that it
+  // continues, and only what runs past that tail is new. A question is not an
+  // identity — "continue" asked twice is two turns — so a turn matches only on
+  // its question *and* its answer.
+  function mergeGoogleTurns(kept, mounted) {
+    let overlap = Math.min(kept.length, mounted.length);
+    for (; overlap > 0; overlap--) {
+      const start = kept.length - overlap;
+      let continues = true;
+      for (let i = 0; i < overlap && continues; i++) continues = sameGoogleTurn(kept[start + i], mounted[i]);
+      if (continues) break;
+    }
+    for (let i = 0; i < overlap; i++) {
+      const turn = kept[kept.length - overlap + i];
+      if (!turn.answer && mounted[i].answer) turn.answer = mounted[i].answer;
+    }
+    for (let i = overlap; i < mounted.length; i++) kept.push(mounted[i]);
   }
 
   async function extractGoogleAiMode(createTurndown) {
-    const query = new URLSearchParams(window.location.search).get('q') || '';
+    const query = compactText(new URLSearchParams(window.location.search).get('q'));
     const scroller = googleScroller();
     const saved = scroller ? scroller.scrollTop : window.scrollY;
-    const kept = new Map();
+    const turns = [];
     try {
       const node = scroller || document.scrollingElement;
       if (node) node.scrollTop = 0;
@@ -640,42 +720,61 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
       let idle = 0;
       for (let step = 0; step < 40 && idle < 2; step++) {
         await new Promise(resolve => setTimeout(resolve, 60));
-        const before = kept.size;
-        rememberTurns(createTurndown, kept);
+        const before = turns.length;
+        mergeGoogleTurns(turns, googleMountedTurns(createTurndown));
         if (!node) break;
         const max = Math.max(0, node.scrollHeight - node.clientHeight);
         if (node.scrollTop >= max - 4) idle++;
         else node.scrollTop = Math.min(max, node.scrollTop + Math.max(240, node.clientHeight * 0.85));
-        if (kept.size !== before) idle = 0;
+        if (turns.length !== before) idle = 0;
       }
     } finally {
       if (scroller) scroller.scrollTop = saved;
       else window.scrollTo(0, saved);
     }
 
+    const questions = stripGoogleLabels(turns.map(turn => turn.question), query);
     const messages = [];
-    kept.forEach((answer, question) => {
-      messages.push({ role: 'user', text: question, time: '' });
-      if (answer) messages.push({ role: 'assistant', text: answer, time: '' });
+    turns.forEach((turn, index) => {
+      messages.push({ role: 'user', text: questions[index], time: '' });
+      if (turn.answer) messages.push({ role: 'assistant', text: turn.answer, time: '' });
     });
 
     // No per-turn headings: a build that dropped them. The question is in the
     // URL and every column still on the page is an answer, in order.
-    if (!messages.length) {
-      const columns = Array.from(document.querySelectorAll('[data-container-id="main-col"]'));
-      if (!columns.length) return null;
-      if (query.trim()) messages.push({ role: 'user', text: query.trim(), time: '' });
+    let columns = [];
+    if (!turns.length) {
+      columns = Array.from(document.querySelectorAll('[data-container-id="main-col"]'));
+      if (!columns.length) {
+        throw extractionError(
+          'Google AI Mode: no question or answer found on this page. ScrapLLM reads each answer ' +
+          'from Google\'s answer column ([data-container-id="main-col"]) and each question from the ' +
+          'level-2 heading in front of it, and this page has neither. If a conversation is on ' +
+          'screen, Google has changed its markup.'
+        );
+      }
+      if (query) messages.push({ role: 'user', text: query, time: '' });
       columns.forEach(column => {
         const answer = googleAnswerMarkdown(column, createTurndown);
         if (answer) messages.push({ role: 'assistant', text: answer, time: '' });
       });
-      if (!messages.length) return null;
     }
 
-    logger.log('Google AI Mode captured', { turns: kept.size, messages: messages.length });
+    if (!messages.some(message => message.role === 'assistant')) {
+      const found = turns.length
+        ? `${turns.length} question${turns.length === 1 ? '' : 's'} but no answer text under ` +
+          (turns.length === 1 ? 'it' : 'any of them')
+        : `${columns.length} answer column${columns.length === 1 ? '' : 's'} ([data-container-id="main-col"]) ` +
+          `but no answer text in ${columns.length === 1 ? 'it' : 'any of them'}`;
+      throw extractionError(
+        `Google AI Mode: found ${found}. If Google is still writing the reply, wait for it to finish and copy again.`
+      );
+    }
+
+    logger.log('Google AI Mode captured', { turns: turns.length, messages: messages.length });
 
     return {
-      title: query.trim() || document.title,
+      title: query || document.title,
       messages
     };
   }
@@ -720,6 +819,9 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
   function isFurniture(element) {
     const text = (element.textContent || '').trim();
     if (!text || text.length > FURNITURE_MAX_CHARS) return false;
+    // A formula is the answer's however short it is, and a display formula is
+    // often the last thing an answer says.
+    if (element.matches(GOOGLE_LATEX_MARK) || element.querySelector(GOOGLE_LATEX_MARK)) return false;
     return !element.querySelector('a, ul, ol, h1, h2, h3, h4, table, pre, code, img');
   }
 
@@ -760,14 +862,23 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
     return length;
   }
 
-  // The address bar carries a fresh tracking token on every load. The page
-  // itself is the query in AI Mode, and that is the URL worth citing.
+  // The address bar carries a fresh tracking token on every load. In AI Mode
+  // the citation is what names the conversation: the question (q) and, on a
+  // saved thread, its id (mtid) — never an empty q=, which would cite a blank
+  // search. mstk is left out: it reads as a per-session token, which has no
+  // business in a document that is about to be pasted into a model, and mtid
+  // already names the thread.
   function pageUrl() {
     try {
       const loc = new URL(window.location.href);
-      const params = new URLSearchParams(loc.search);
-      if (params.get('udm') === '50') {
-        return loc.origin + '/search?udm=50&q=' + encodeURIComponent(params.get('q') || '');
+      const site = getSite(loc);
+      if (site && site.id === 'google-ai' && isThreadUrl(site, loc)) {
+        const params = loc.searchParams;
+        const kept = [];
+        if (params.get('udm')) kept.push('udm=' + encodeURIComponent(params.get('udm')));
+        if (compactText(params.get('q'))) kept.push('q=' + encodeURIComponent(params.get('q')));
+        if (params.get('mtid')) kept.push('mtid=' + encodeURIComponent(params.get('mtid')));
+        return loc.origin + loc.pathname + '?' + kept.join('&');
       }
     } catch (error) {
       // A URL the browser handed us and still could not parse: keep it whole.
@@ -839,15 +950,63 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
         lines.pop();
         continue;
       }
-      if (last.length > FURNITURE_MAX_CHARS || /^[#>*\-+|]/.test(last) || last.includes('](')) break;
+      // A line with a $ in it holds a formula (or a price): the answer's.
+      if (last.length > FURNITURE_MAX_CHARS || /^[#>*\-+|]/.test(last) || last.includes('](') || last.includes('$')) break;
       lines.pop();
       removed++;
     }
     return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
   }
 
+  // Formulas are images that carry their own LaTeX in data-xpm-latex: inline
+  // inside .mTEjhd, on their own line inside .cPGBZb. The image goes with the
+  // hidden and base64 images below, so the formula is turned into a marked
+  // span first, and the Turndown rule writes it out verbatim — as text,
+  // Turndown would escape every subscript underscore and every backslash.
+  const GOOGLE_LATEX_MARK = '[data-scrapllm-latex]';
+
+  function markGoogleLatex(root) {
+    root.querySelectorAll('[data-xpm-latex]').forEach(node => {
+      // Gone already, along with an earlier formula's container.
+      if (!root.contains(node)) return;
+      const tex = String(node.getAttribute('data-xpm-latex') || '').trim();
+      if (!tex) return;
+      const within = (selector) => {
+        const found = node.closest(selector);
+        return found && found !== root && root.contains(found) ? found : null;
+      };
+      // The wrapper goes with the image when this formula is all it holds;
+      // otherwise the image is replaced on its own, so a wrapper with two
+      // formulas keeps both. Outside either known wrapper it reads as inline.
+      const alone = (wrapper) => (wrapper && wrapper.querySelectorAll('[data-xpm-latex]').length === 1 ? wrapper : null);
+      const block = within('.cPGBZb');
+      const holder = alone(block) || alone(within('.mTEjhd')) || node;
+      const marker = root.ownerDocument.createElement('span');
+      marker.setAttribute('data-scrapllm-latex', tex);
+      marker.setAttribute('data-display', block ? 'block' : 'inline');
+      // Text, so that neither Turndown nor the furniture trim takes it for an
+      // empty element.
+      marker.textContent = tex;
+      holder.replaceWith(marker);
+    });
+  }
+
+  function googleLatexRule(service) {
+    service.addRule('googleLatex', {
+      filter: node => node.nodeType === 1 && node.hasAttribute('data-scrapllm-latex'),
+      replacement: (content, node) => {
+        const tex = node.getAttribute('data-scrapllm-latex');
+        return node.getAttribute('data-display') === 'block'
+          ? `\n\n$$\n${tex}\n$$\n\n`
+          : `$${tex}$`;
+      }
+    });
+    return service;
+  }
+
   function googleAnswerMarkdown(main, createTurndown) {
     const clone = main.cloneNode(true);
+    markGoogleLatex(clone);
     // Feedback rails, "show more" affordances and the sources carousel are
     // chrome around the answer, not the answer.
     // The feedback panel first, while it is still recognisable. It is a block of
@@ -893,7 +1052,7 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
     let markdown = '';
     if (createTurndown) {
       try {
-        markdown = createTurndown().turndown(clone.innerHTML).trim();
+        markdown = googleLatexRule(createTurndown()).turndown(clone.innerHTML).trim();
       } catch (error) {
         logger.error('Turndown failed on the AI Mode answer', error);
       }
@@ -992,8 +1151,9 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
     const site = getSite(window.location);
     if (!site || site.id !== 'google-ai' || !isThreadUrl(site, window.location)) return null;
 
+    // On a thread it cannot read this throws with what was missing; it never
+    // hands back an empty conversation.
     const captured = await extractGoogleAiMode(createTurndown);
-    if (!captured || !captured.messages.length) return null;
 
     const query = captured.title || document.title;
     const body = [];
@@ -1156,17 +1316,17 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
     }
 
     // A site with its own extractor knows something the generic reader cannot
-    // work out from the markup alone.
+    // work out from the markup alone. It returns the conversation or throws
+    // with what it could not find: handing its page to the generic reader
+    // would copy whatever that page happened to hold, under this site's name.
     if (site && site.extract && isThreadUrl(site, window.location)) {
       const captured = await site.extract(createTurndown);
-      if (captured && captured.messages.length) {
-        // The thread is the whole page. A saved "last 10" would drop the start
-        // of an AI Mode conversation the user asked to copy in full.
-        const chatSettings = site.id === 'google-ai'
-          ? Object.assign({}, settings || {}, { chatExchangeLimit: 'all' })
-          : (settings || {});
-        return render(captured, site, chatSettings);
-      }
+      // The thread is the whole page. A saved "last 10" would drop the start
+      // of an AI Mode conversation the user asked to copy in full.
+      const chatSettings = site.id === 'google-ai'
+        ? Object.assign({}, settings || {}, { chatExchangeLimit: 'all' })
+        : (settings || {});
+      return render(captured, site, chatSettings);
     }
 
     const scraped = extractFromDom(site, createTurndown);
@@ -1183,7 +1343,8 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
     _internals: {
       extractGoogleAiMode,
       googleTurnHeadings,
-      googleHeadingText, groupExchanges, resolveLimit, walkActiveBranch, roleFromHints, collectTurns, render, SITES }
+      isGoogleAiModeRoute, stripGoogleLabels, mergeGoogleTurns,
+      groupExchanges, resolveLimit, walkActiveBranch, roleFromHints, collectTurns, render, SITES }
   };
 })();
 
