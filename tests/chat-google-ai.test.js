@@ -38,6 +38,8 @@
 //       what was missing, and the content script hands that sentence to the popup
 //   R6  the cited URL never carries an empty q= and never the mstk token
 //   R7  regression guards for what the extractor already does
+//   R8  Gemini is Gemini: only Google Search hosts are AI Mode
+//   R9  an answer that ends in a list or a code block keeps all of it
 
 const fs = require('fs');
 const path = require('path');
@@ -521,6 +523,52 @@ describe('Google AI Mode', () => {
       expect(page.markdown).toContain('**Exchanges:** 2 of 2');
       expect(page.markdown).not.toContain('(last');
       expect(page.markdown).toContain('**Source:** Google AI Mode');
+    });
+  });
+
+  describe('R8: which Google hosts are AI Mode', () => {
+    const siteOf = (url) => (ScrapLLMChat.getSite(new URL(url)) || {}).id || null;
+
+    it('Gemini is read as Gemini, not as AI Mode', () => {
+      expect(siteOf('https://gemini.google.com/app/1a2b3c4d')).toBe('gemini');
+    });
+
+    it('AI Mode is Google Search, on any country domain, and no other Google product', () => {
+      expect(siteOf('https://www.google.com/search?q=heat+pumps&udm=50')).toBe('google-ai');
+      expect(siteOf('https://google.com/ai?q=heat+pumps')).toBe('google-ai');
+      expect(siteOf('https://www.google.co.uk/search?q=heat+pumps&udm=50')).toBe('google-ai');
+      expect(siteOf('https://www.google.de/search?q=heat+pumps&udm=50')).toBe('google-ai');
+      expect(siteOf('https://docs.google.com/document/d/1abc/edit')).not.toBe('google-ai');
+      expect(siteOf('https://mail.google.com/mail/u/0/')).not.toBe('google-ai');
+    });
+  });
+
+  describe('R9: the end of an answer is the answer\'s', () => {
+    // Long enough that no trim takes it for a closing label.
+    const LEAD = paragraph('Here is the short version of what to do, followed by the detail you asked for, kept to the essentials so that it fits on one screen.');
+
+    it('a closing numbered list keeps every item', async () => {
+      show(thread(turn('You said: How do I upgrade?', `${LEAD}<ol><li>Install the package</li><li>Run the migration</li></ol>`)));
+      const answer = (await extract()).messages[1].text;
+      expect(answer).toMatch(/^1\.\s+Install the package$/m);
+      expect(answer).toMatch(/^2\.\s+Run the migration$/m);
+      expect(answer).not.toMatch(/may include mistakes/);
+    });
+
+    it('a closing bulleted list keeps every item', async () => {
+      show(thread(turn('You said: Why pick it?', `${LEAD}<ul><li>Fast</li><li>Small</li></ul>`)));
+      const answer = (await extract()).messages[1].text;
+      expect(answer).toMatch(/^-\s+Fast$/m);
+      expect(answer).toMatch(/^-\s+Small$/m);
+      expect(answer).not.toMatch(/may include mistakes/);
+    });
+
+    it('a closing code block survives whole', async () => {
+      const code = 'import tomllib\nwith open("config.toml", "rb") as f:\n    config = tomllib.load(f)';
+      show(thread(turn('You said: Show me the code', `${LEAD}<pre><code class="language-python">${code}</code></pre>`)));
+      const answer = (await extract()).messages[1].text;
+      expect(answer).toContain('```python\n' + code + '\n```');
+      expect(answer).not.toMatch(/may include mistakes/);
     });
   });
 });
