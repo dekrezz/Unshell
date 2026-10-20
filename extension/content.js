@@ -800,7 +800,10 @@
       });
       if (chat) {
         return ScrapLLMConvert.postProcessMarkdown(
-          chat.markdown, settings, chat.articleData, pageContext());
+          chat.markdown, settings, chat.articleData, {
+            url: chat.url || window.location.href,
+            title: (chat.articleData && chat.articleData.title) || document.title
+          });
       }
       throw new Error('No conversation could be extracted from this page');
     }
@@ -833,6 +836,44 @@
         (scrollResult.heightDelta > 0 || scrollResult.contentChanged)) {
       appendNotes.push(`\n\n---\n> **Note:** This page uses dynamic content loading (virtual scrolling). The extension scrolled to load all visible content, but some may still be missing if it wasn't rendered in the DOM. For long conversations or feeds, try scrolling through the entire content manually before converting.\n`);
       DebugLog.log('Added lazy load warning', { scrollResult, reason: lazyLoadInfo.reason });
+    }
+
+    // Google AI Mode lives on a search URL. Readability and the full-page path
+    // both keep the search shell — tab strip, sign-in, voice prompts — and the
+    // hidden source list, whose text is base64 image payloads. The answer and
+    // the source column are a different extractor.
+    if (settings.contentScope !== 'chat' &&
+        settings.contentScope !== 'selection' &&
+        typeof ScrapLLMChat !== 'undefined' &&
+        typeof ScrapLLMChat.convertPage === 'function') {
+      let aiPage = null;
+      try {
+        aiPage = await ScrapLLMChat.convertPage(settings, {
+          logger: {
+            log: (message, data) => DebugLog.log(message, data),
+            error: (message, error) => DebugLog.error(message, error)
+          },
+          createTurndown: () => ScrapLLMConvert.configureTurndownService(settings)
+        });
+      } catch (error) {
+        DebugLog.error('Google AI Mode page extraction failed', error);
+        throw error;
+      }
+      if (aiPage) {
+        return ScrapLLMConvert.postProcessMarkdown(
+          aiPage.markdown, settings, aiPage.articleData, {
+            url: aiPage.url || window.location.href,
+            title: (aiPage.articleData && aiPage.articleData.title) || document.title
+          });
+      }
+      try {
+        if (ScrapLLMChat.inspect().site === 'google-ai') {
+          throw new Error('No AI Mode answer could be extracted from this page');
+        }
+      } catch (error) {
+        if (error && error.message === 'No AI Mode answer could be extracted from this page') throw error;
+        DebugLog.error('Chat probe failed during AI Mode page conversion', error);
+      }
     }
 
     // Converting a chat page as a page captures whichever messages happen to be

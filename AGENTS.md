@@ -106,8 +106,17 @@ are stable — the question is the URL's q parameter and the answer is Google's 
 result column, `data-container-id="main-col"`. It lives on `/search`, the same
 path as an ordinary result page, so the registry entry carries a `query` guard
 (`udm=50`) alongside the path test; without it every Google search would offer to
-copy a conversation. Citation chips are icon-only links, so they are dropped
-before conversion — otherwise every second sentence ends in an empty link.
+copy a conversation. Citation chips are icon-only links whose `href` is
+`/goto?url=<opaque>`, so the chip is replaced with the label the pill already
+shows (`Stripe +3`) rather than an empty link or that token. A follow-up is a new `main-col`, not more text in the first one, so Copy Chat
+walks every column (and scrolls the thread, because a long one unmounts turns
+that are off screen) and always exports the whole conversation. Copying the page
+(main content or full page) does not fall through to Readability or the body:
+both keep the search shell, and the hidden copy of the source list is base64
+image payloads. The answer comes from `main-col`. A full-page copy also appends
+the source column, `rhs-col`, one entry per card, linked to the publisher site
+on the card's favicon URL — the card's own link is the same opaque `/goto`.
+The partial-transcript note is not added on this page.
 
 **`reddit.js`** — the post plus its comment tree from Reddit's own JSON, fetched
 same-origin (no extra host permission, and the user's session applies). Falls
