@@ -44,8 +44,12 @@ and on the page itself, in this order:
 | otherwise | Readability (main content) / full page / selection |
 
 Extractors return `{ markdown, articleData }`, or `null` to mean "nothing here,
-fall through to the generic path". Anything else throws with a message the popup
-shows verbatim.
+fall through to the generic path". Anything else throws. The popup shows only
+`response.error`, which `content.js` fills with a fixed sentence per known case
+and the generic "An error occurred during conversion." otherwise — so an
+extractor that has something specific to say (what it looked for, what was
+missing) throws an `Error` with `verbatim: true`, and that message reaches the
+popup as written.
 
 ### Message actions
 
@@ -101,22 +105,57 @@ most of them — so a comment thread does not light the button up.
 `chatExchangeLimit` defaults to 10 exchanges, not 'all'.
 
 Google's AI Mode is handled by its own extractor rather than the role heuristic:
-it has no per-turn elements and its class names are build hashes, but two things
-are stable — the question is the URL's q parameter and the answer is Google's own
-result column, `data-container-id="main-col"`. It lives on `/search`, the same
-path as an ordinary result page, so the registry entry carries a `query` guard
-(`udm=50`) alongside the path test; without it every Google search would offer to
-copy a conversation. Citation chips are icon-only links whose `href` is
+it has no author-role attributes and its class names are build hashes. The
+answer is Google's own result column, `data-container-id="main-col"`, and a
+follow-up is a new `main-col`, not more text in the first one; the question is
+the level-2 heading in front of each column, outside it. Headings inside a
+column are the answer's own sections and stay in it. None of this has been
+checked against a live capture: the tests' fixtures are reconstructed from this
+model and from the class names two third-party exporters read off the page.
+
+The surface lives on `/search`, the same path as an ordinary result page, so the
+registry entry carries a `query` guard alongside the path test: `udm=50` *and*
+something that names a conversation — a question (`q`) or a saved thread
+(`mtid`). Without the first every Google search would offer to copy a
+conversation; without the second so would the empty AI Mode home. `/ai` and
+`/aimode` with a question count too. `mstk` names nothing and is never cited: it
+reads as a per-session token, and `mtid` already names the thread. The cited
+URL keeps `udm`, `q` and `mtid` and drops everything else, so it never carries
+an empty `q=` or the tracking tokens of the address bar.
+
+The question heading reads "You said: <question>" in the page's language, and a
+question can hold a colon of its own ("Python: which library reads TOML?"), so
+the label is cut only where the page proves it is one: every question shares
+it, or what follows it is the question in the URL, or it is the English label.
+A question that is, whole, the one in the URL proves the page has no label. A
+lone question on a saved thread in another language has no proof either way and
+keeps its label — a stray label is noise, a cut question is lost text.
+
+Copy Chat scrolls the thread (a long one unmounts turns that are off screen),
+reads what is mounted on each step, and lays each step over the tail of what it
+has kept. A turn is matched on its question *and* its answer, never the
+question alone, so "continue" asked twice is two exchanges. It always exports
+the whole conversation. Citation chips are icon-only links whose `href` is
 `/goto?url=<opaque>`, so the chip is replaced with the label the pill already
-shows (`Stripe +3`) rather than an empty link or that token. A follow-up is a new `main-col`, not more text in the first one, so Copy Chat
-walks every column (and scrolls the thread, because a long one unmounts turns
-that are off screen) and always exports the whole conversation. Copying the page
-(main content or full page) does not fall through to Readability or the body:
-both keep the search shell, and the hidden copy of the source list is base64
-image payloads. The answer comes from `main-col`. A full-page copy also appends
-the source column, `rhs-col`, one entry per card, linked to the publisher site
-on the card's favicon URL — the card's own link is the same opaque `/goto`.
-The partial-transcript note is not added on this page.
+shows (`Stripe +3`) rather than an empty link or that token. Formulas are images
+that carry their source in `data-xpm-latex`; they are written as `$…$` inside
+`.mTEjhd` and as a `$$` block for `.cPGBZb`, through a Turndown rule, because as
+text every underscore and backslash would be escaped. The trims that drop the
+trailing disclaimer never take a formula.
+
+On an AI Mode thread URL the extractor never returns null. No question heading
+and no answer column, or questions with no answer text under them, throws a
+`verbatim` error naming Google AI Mode and what was missing: handing the page to
+the generic DOM reader would copy whatever it happened to hold under the AI Mode
+label. Copying the page (main content or full page) does not fall through to
+Readability or the body either: both keep the search shell, and the hidden copy
+of the source list is base64 image payloads. The answer comes from `main-col`.
+A full-page copy also appends the source column, `rhs-col`, one entry per card,
+linked to the publisher site on the card's favicon URL — the card's own link is
+the same opaque `/goto`. Off an AI Mode thread `convertPage` returns null and
+the page converts like any other: the registry's host pattern matches every
+Google host and subdomain (Docs, Gmail, an ordinary search), so refusing there
+would refuse all of them. The partial-transcript note is not added on this page.
 
 **`reddit.js`** — the post plus its comment tree from Reddit's own JSON, fetched
 same-origin (no extra host permission, and the user's session applies). Falls
