@@ -598,10 +598,14 @@ run.
 | `project`, `rubberband`, `draggable`, `pressable`, `prefersReducedMotion` | Momentum, boundaries, gestures, press state, accessibility |
 
 `styles.css` answers `prefers-reduced-motion` (cross-fades, no travel),
-`prefers-reduced-transparency` (frosted-solid surfaces) and
-`prefers-contrast: more` (near-opaque, bordered). Type uses the platform font
-with size-specific tracking and rem spacing, so the user's text-size setting
-grows the layout.
+`prefers-reduced-transparency` (solid surfaces, no spectrum glow) and
+`prefers-contrast: more` (near-opaque, bordered, no particle halo). Type is
+Geist and Geist Mono (OFL, `extension/assets/fonts/`, preloaded by
+`popup.html`, `font-display: block` so the popup never paints in a fallback
+first) with size-specific tracking and rem spacing, so the user's text-size
+setting grows the layout. Mono carries labels, counters and section titles.
+`assets/` is copied whole by every target in `scripts/build.sh`; a file added
+there needs no build change, a file added beside it does.
 
 ## Adding a setting
 

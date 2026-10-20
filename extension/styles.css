@@ -1,18 +1,47 @@
 /* ScrapLLM Styles
  * Created by @dekrezz (https://github.com/dekrezz)
  *
- * Design notes (see AGENTS.md → "Interface design"):
+ * Design notes (see AGENTS.md → "Motion and interface"):
+ * - The visual language follows Google Antigravity: a white (or #121317)
+ *   field, near-black ink, solid pill actions, faint hairlines instead of
+ *   shadows, and colour only where it means something — the multicolour
+ *   spectrum marks AI work in progress, the particle halo is decoration.
+ * - Type is Geist for reading and Geist Mono for data and utility labels,
+ *   bundled with the extension (assets/fonts), so the popup still makes no
+ *   network request.
  * - Motion the user can touch lives in motion.js (springs), never in CSS
  *   transitions: a transition cannot be grabbed and reversed mid-flight.
  *   Transitions here are limited to colour, opacity, shadow and the press
  *   scale, none of which are gesture-driven.
- * - Chrome (header, menus, sheets) is a translucent material with
- *   content moving underneath, not an opaque strip.
  * - Spacing and type scale in rem so the user's text-size setting grows the
  *   layout with the text.
  * - Tracking is size-specific: tight on large text, slightly open on small
  *   caps, ~0 on body copy.
  */
+
+/* ==========================================================================
+   FONTS
+   ==========================================================================
+   Variable files, one per family: every weight the stylesheet asks for comes
+   out of the same 70 KB. `block` rather than `swap`, because the files are
+   on disk and preloaded by popup.html — a swap would only ever show up as a
+   one-frame flash of the system face on every open. */
+
+@font-face {
+  font-family: "Geist";
+  src: url("assets/fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("assets/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
 
 /* ==========================================================================
    TOKENS
@@ -21,60 +50,86 @@
 :root {
   color-scheme: light;
 
-  /* Accent */
-  --action-color: #ffd60a;
-  --action-color-hi: #ffe95c;
-  --action-color-lo: #ffbf00;
-  --action-label: #1f1800; /* dark label: yellow needs dark type to stay legible */
-  --primary-color: #0071e3;
-  --primary-hover: #0062c4;
-  --primary-active: #0056ad;
-  --primary-tint: rgba(0, 113, 227, 0.12);
-  --secondary-color: #34a853;
-  --success-color: #1d9e5c;
-  --error-color: #d7373f;
-  --warning-color: #c8830a;
+  --font-sans: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+
+  /* The primary action is ink: a solid near-black pill with a white label. */
+  --action-color: #121317;
+  --action-hover: #2a2c33;
+  --action-pressed: #000000;
+  --action-label: #ffffff;
+  /* Hairline between the two halves of a split key. */
+  --action-seam: rgba(255, 255, 255, 0.16);
+
+  /* Accent — links, focus, the selection copy, the research start key. */
+  --primary-color: #1a73e8;
+  --primary-hover: #1557b0;
+  --primary-active: #174ea6;
+  --primary-label: #ffffff;
+  --primary-tint: rgba(26, 115, 232, 0.1);
+  --success-color: #188038;
+  --error-color: #d93025;
+  --warning-color: #b06000;
+
+  /* The spectrum is reserved for AI work: a run in progress, a conversation
+     copy. It is never a background for text. */
+  --spectrum: linear-gradient(90deg, #4285f4 0%, #7b61ff 36%, #ea4335 68%, #fbbc04 100%);
+  --spectrum-conic: conic-gradient(from 0deg, #4285f4, #7b61ff, #ea4335, #fbbc04, #34a853, #4285f4);
+  /* The frame the browser gets when Antigravity's agent takes the wheel. */
+  --glow: 0 0 0 1px var(--primary-color), 0 0 0 4px rgba(26, 115, 232, 0.16);
 
   /* Surfaces */
-  --background-color: #f2f2f5;
+  --background-color: #ffffff;
   --surface-color: #ffffff;
   --surface-raised: #ffffff;
-  --section-bg: rgba(120, 120, 128, 0.08);
+  --surface-sunken: #f8f9fa;
+  --section-bg: #f1f3f4;
 
-  /* Materials — translucent layers, blur strength scales with surface size */
-  --material-chrome: rgba(255, 255, 255, 0.72);
-  --material-menu: rgba(255, 255, 255, 0.78);
-  --material-edge: rgba(255, 255, 255, 0.65);
-  --material-blur-sm: saturate(180%) blur(14px);
-  --material-blur-lg: saturate(180%) blur(28px);
-  --scrim: rgba(0, 0, 0, 0.18);
+  /* Materials. Antigravity does not do glass, so chrome is nearly solid; the
+     little translucency left is what lets content dissolve under the edges. */
+  --material-chrome: rgba(255, 255, 255, 0.96);
+  --material-menu: #ffffff;
+  --material-edge: rgba(18, 19, 23, 0.08);
+  --material-blur-sm: blur(8px);
+  --material-blur-lg: blur(12px);
+  --scrim: rgba(18, 19, 23, 0.14);
 
   /* Labels */
-  --text-color: #1c1c1e;
-  --label-secondary: rgba(60, 60, 67, 0.72);
-  --label-tertiary: rgba(60, 60, 67, 0.52);
+  --text-color: #121317;
+  --label-primary: var(--text-color);
+  --label-secondary: #45474d;
+  --label-tertiary: #7c7f87;
   --dark-gray: var(--label-secondary);
+  /* popup.html's inline hints ask for this name; without it they fell back to
+     the full ink colour. */
+  --text-secondary: var(--label-secondary);
 
   /* Fills & lines */
-  --fill-quaternary: rgba(120, 120, 128, 0.08);
-  --fill-tertiary: rgba(120, 120, 128, 0.12);
-  --fill-secondary: rgba(120, 120, 128, 0.16);
-  --border-color: rgba(60, 60, 67, 0.16);
-  --separator: rgba(60, 60, 67, 0.1);
+  --fill-quaternary: rgba(18, 19, 23, 0.03);
+  --fill-tertiary: rgba(18, 19, 23, 0.055);
+  --fill-secondary: rgba(18, 19, 23, 0.09);
+  --secondary-fill: #eff0f3;
+  --secondary-hover: #e5e6ea;
+  --border-color: rgba(18, 19, 23, 0.14);
+  --separator: rgba(18, 19, 23, 0.08);
   --light-gray: var(--fill-quaternary);
   --setting-hover: var(--fill-tertiary);
 
-  /* Elevation — bigger surfaces read as thicker */
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 1px rgba(0, 0, 0, 0.04);
-  --shadow-2: 0 6px 20px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-3: 0 18px 50px rgba(0, 0, 0, 0.22), 0 2px 8px rgba(0, 0, 0, 0.08);
+  /* Elevation — faint by design: hairlines carry structure, not shadows. */
+  --shadow-1: 0 1px 2px rgba(18, 19, 23, 0.05);
+  --shadow-2: 0 12px 32px -8px rgba(18, 19, 23, 0.16), 0 2px 6px rgba(18, 19, 23, 0.05);
+  --shadow-3: 0 -12px 40px -10px rgba(18, 19, 23, 0.16);
+
+  /* Decoration */
+  --particles-opacity: 0.9;
+  --glow-opacity: 0.42;
 
   /* Radii */
   --r-xs: 0.375rem;
   --r-sm: 0.5rem;
-  --r-md: 0.75rem;
+  --r-md: 0.875rem;
   --r-lg: 1rem;
-  --r-xl: 1.25rem;
+  --r-xl: 1.5rem;
   --r-pill: 999px;
 
   /* Rhythm */
@@ -97,44 +152,57 @@
   color-scheme: light;
 }
 
+/* Dark is Antigravity's own canvas, #121317, with the action reversed: a
+   white pill with an ink label. */
 .dark-theme {
   color-scheme: dark;
 
-  --action-color: #ffdd20;
-  --action-color-hi: #fff275;
-  --action-color-lo: #ffc400;
-  --action-label: #1c1500;
-  --primary-color: #0a84ff;
-  --primary-hover: #3d9bff;
-  --primary-active: #61aeff;
-  --primary-tint: rgba(10, 132, 255, 0.2);
-  --success-color: #30d158;
-  --error-color: #ff453a;
-  --warning-color: #ffd60a;
+  --action-color: #eceef1;
+  --action-hover: #ffffff;
+  --action-pressed: #d4d6db;
+  --action-label: #121317;
+  --action-seam: rgba(18, 19, 23, 0.14);
 
-  --background-color: #161618;
-  --surface-color: #1f1f22;
-  --surface-raised: #26262a;
-  --section-bg: rgba(118, 118, 128, 0.16);
+  --primary-color: #8ab4f8;
+  --primary-hover: #aecbfa;
+  --primary-active: #c6dafc;
+  --primary-label: #121317;
+  --primary-tint: rgba(138, 180, 248, 0.16);
+  --success-color: #81c995;
+  --error-color: #f28b82;
+  --warning-color: #fdd663;
 
-  --material-chrome: rgba(30, 30, 34, 0.72);
-  --material-menu: rgba(40, 40, 45, 0.8);
-  --material-edge: rgba(255, 255, 255, 0.1);
-  --scrim: rgba(0, 0, 0, 0.4);
+  --glow: 0 0 0 1px var(--primary-color), 0 0 0 4px rgba(138, 180, 248, 0.18);
 
-  --text-color: #f5f5f7;
-  --label-secondary: rgba(235, 235, 245, 0.68);
-  --label-tertiary: rgba(235, 235, 245, 0.46);
+  --background-color: #121317;
+  --surface-color: #1a1b20;
+  --surface-raised: #24262c;
+  --surface-sunken: #17181c;
+  --section-bg: #1f2025;
 
-  --fill-quaternary: rgba(118, 118, 128, 0.14);
-  --fill-tertiary: rgba(118, 118, 128, 0.2);
-  --fill-secondary: rgba(118, 118, 128, 0.28);
-  --border-color: rgba(235, 235, 245, 0.18);
-  --separator: rgba(235, 235, 245, 0.12);
+  --material-chrome: rgba(18, 19, 23, 0.96);
+  --material-menu: #1e2025;
+  --material-edge: rgba(255, 255, 255, 0.08);
+  --scrim: rgba(0, 0, 0, 0.45);
+
+  --text-color: #e8eaed;
+  --label-secondary: #a9acb3;
+  --label-tertiary: #72767e;
+
+  --fill-quaternary: rgba(255, 255, 255, 0.03);
+  --fill-tertiary: rgba(255, 255, 255, 0.06);
+  --fill-secondary: rgba(255, 255, 255, 0.1);
+  --secondary-fill: #24262c;
+  --secondary-hover: #2c2f36;
+  --border-color: rgba(255, 255, 255, 0.14);
+  --separator: rgba(255, 255, 255, 0.08);
 
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-3: 0 20px 56px rgba(0, 0, 0, 0.65);
+  --shadow-2: 0 14px 36px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-3: 0 -14px 44px -10px rgba(0, 0, 0, 0.7);
+
+  --particles-opacity: 0.7;
+  --glow-opacity: 0.32;
 }
 
 /* ==========================================================================
@@ -150,19 +218,17 @@ html {
 }
 
 body {
-  /* The platform font already ships optical sizing, tracking tables and
-     legibility tuning — and needs no network request from the popup. */
-  font-family: system-ui, -apple-system, "SF Pro Text", "Segoe UI Variable Text",
-    "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans);
   font-size: 0.875rem;
   line-height: 1.45;
-  letter-spacing: 0;
+  letter-spacing: -0.003em;
   margin: 0;
   padding: 0;
   color: var(--text-color);
   background-color: var(--background-color);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   transition: background-color var(--t-base), color var(--t-base);
 }
@@ -187,21 +253,24 @@ h1 {
   font-size: 1.0625rem;
   font-weight: 600;
   line-height: 1.2;
-  letter-spacing: -0.014em; /* larger text reads too loose at default tracking */
+  letter-spacing: -0.025em; /* Geist runs open at display sizes */
 }
 
 h2 {
   font-size: 0.9375rem;
   font-weight: 600;
   line-height: 1.25;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 
+/* Section labels are utility lines, so they are set the way Antigravity sets
+   its code-adjacent labels: monospaced, small, uppercase, quiet. */
 h3 {
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.3;
-  letter-spacing: 0.055em; /* small caps need opening up, not tightening */
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--label-tertiary);
 }
@@ -294,11 +363,28 @@ input {
 }
 
 #mainView .container {
+  position: relative;
   padding: 0;
 }
 
+/* The particle halo: Antigravity's signature, drawn once as an SVG and set
+   behind the action stack, above the research bar. It is decoration — no
+   pointer, no reading order, dimmed with everything else by the scrim. */
+#mainView > .container::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--research-bar-h) - 0.5rem);
+  height: 12.5rem;
+  background: url("assets/particles.svg") no-repeat center bottom / 25rem auto;
+  opacity: var(--particles-opacity);
+  pointer-events: none;
+  z-index: 0;
+}
+
 /* ==========================================================================
-   CHROME — translucent header with content passing underneath
+   CHROME — a thin top bar, logo left, controls right
    ========================================================================== */
 
 .header {
@@ -312,24 +398,14 @@ input {
   background: var(--material-chrome);
   -webkit-backdrop-filter: var(--material-blur-lg);
   backdrop-filter: var(--material-blur-lg);
-  border-bottom: 1px solid transparent; /* replaced by the scroll edge mask */
-}
-
-.header::after {
-  /* Light catching the top edge of the material */
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 1px;
-  background: var(--material-edge);
-  opacity: 0.5;
-  pointer-events: none;
+  /* One hairline, the way Antigravity draws its navigation line. */
+  border-bottom: 1px solid var(--separator);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: var(--gap-sm);
+  gap: 0.625rem;
   min-width: 0;
 }
 
@@ -340,6 +416,12 @@ input {
   flex: none;
 }
 
+.brand h1 {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
 .header-actions {
   display: flex;
   align-items: center;
@@ -347,9 +429,9 @@ input {
 }
 
 .settings-title {
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 600;
-  letter-spacing: -0.012em;
+  letter-spacing: -0.02em;
   text-align: center;
   flex: 1;
 }
@@ -396,8 +478,10 @@ a.icon-btn {
    MAIN VIEW
    ========================================================================== */
 
+/* The header carries its own inset; padding here as well put the logo a
+   whole gutter further in than the actions under it. */
 .top-section {
-  padding: var(--gap-lg) var(--edge) 0;
+  padding: 0;
 }
 
 /* Content sits under the top edge rather than floating in the middle of an
@@ -407,7 +491,7 @@ a.icon-btn {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  padding: var(--gap-lg) var(--edge) var(--gap-lg);
+  padding: var(--gap-xl) var(--edge) var(--gap-lg);
   min-height: 0;
   /* Must stay visible: the split-button menu opens upward out of this box, and
      clipping (or a mask, which also creates a stacking context) would slice it
@@ -451,13 +535,14 @@ a.icon-btn {
   background: var(--primary-tint);
   color: var(--primary-color);
   font-size: 0.75rem;
-  font-weight: 590;
-  letter-spacing: 0.005em;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .tab-count-badge span {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* ==========================================================================
@@ -472,106 +557,88 @@ a.icon-btn {
   justify-content: center;
   gap: var(--gap-sm);
   width: 100%;
-  min-height: 3rem;
-  padding: 0.6875rem 1.25rem;
+  min-height: 2.75rem;
+  padding: 0.625rem 1.25rem;
   border: none;
   border-radius: var(--r-pill);
   font-size: 0.9375rem;
-  font-weight: 600;
-  letter-spacing: -0.01em; /* the label grew, so the tracking tightens with it */
+  font-weight: 500;
+  letter-spacing: -0.012em; /* the label is large, so the tracking tightens */
   cursor: pointer;
   overflow: hidden;
   /* Press feedback is instant and lands on pointer-down (motion.js pressable) */
-  transition: background var(--t-fast), color var(--t-fast),
+  transition: background-color var(--t-fast), color var(--t-fast),
     box-shadow var(--t-fast), transform var(--t-fast), filter var(--t-fast);
 }
 
-/* The primary action reads as a lit, physical key: a vertical gradient for
-   form, a bright inner top edge where light catches it, and a shadow tinted
-   with its own colour so it sits above the surface rather than on it. */
+/* The primary action is a flat ink pill — no gradient, no gloss. Its weight
+   comes from contrast against the white field, not from depth. */
 .primary-btn {
-  background: linear-gradient(180deg,
-    var(--action-color-hi) 0%,
-    var(--action-color) 55%,
-    var(--action-color-lo) 100%);
+  background: var(--action-color);
   color: var(--action-label);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.45),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.14),
-    0 2px 6px rgba(0, 0, 0, 0.14),
-    0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .primary-btn:hover {
-  filter: brightness(1.06);
+  background: var(--action-hover);
 }
 
-/* Selection action: a second primary, kept in the system blue so it reads as a
+/* Selection action: a second primary, in the accent blue so it reads as a
    different kind of copy rather than a competing version of the same one. */
 .selection-btn {
-  background: linear-gradient(180deg,
-    color-mix(in srgb, var(--primary-color) 86%, white) 0%,
-    var(--primary-color) 55%,
-    color-mix(in srgb, var(--primary-color) 88%, black) 100%);
-  color: #fff;
+  background: var(--primary-color);
+  color: var(--primary-label);
+}
+
+.selection-btn:hover {
+  background: var(--primary-hover);
 }
 
 .selection-btn.hidden {
   display: none !important;
 }
 
-/* Pressed: it sinks — scale in, shadow collapses toward the surface, the
-   gradient flattens. All of it starts on pointer-down. */
+/* Pressed: it sinks — a small scale and a deeper fill. Both start on
+   pointer-down. */
 .primary-btn.is-pressed {
   transform: scale(0.975);
-  filter: brightness(0.94);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    inset 0 2px 6px rgba(0, 0, 0, 0.22),
-    0 1px 2px rgba(0, 0, 0, 0.12);
+  background: var(--action-pressed);
+}
+
+.selection-btn.is-pressed {
+  background: var(--primary-active);
 }
 
 .primary-btn:disabled,
 .secondary-btn:disabled {
-  opacity: 0.42;
+  opacity: 0.38;
   cursor: not-allowed;
   transform: none;
 }
 
+/* The quieter pill of the pair: pale grey, ink label, no outline. */
 .secondary-btn {
-  background: var(--surface-raised);
+  background: var(--secondary-fill);
   color: var(--text-color);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 1px 2px rgba(0, 0, 0, 0.08),
-    0 0 0 1px var(--separator);
-}
-
-.dark-theme .secondary-btn {
-  background: var(--fill-tertiary);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.3),
-    0 0 0 1px var(--separator);
 }
 
 .secondary-btn:hover {
-  filter: brightness(1.04);
-  background: var(--fill-tertiary);
+  background: var(--secondary-hover);
 }
 
 .secondary-btn.is-pressed {
   transform: scale(0.975);
   background: var(--fill-secondary);
-  box-shadow:
-    inset 0 2px 5px rgba(0, 0, 0, 0.14),
-    0 0 0 1px var(--separator);
 }
 
 .primary-btn.success,
 .secondary-btn.success {
   background: var(--success-color);
   color: #fff;
+}
+
+.dark-theme .primary-btn.success,
+.dark-theme .secondary-btn.success {
+  color: #121317;
 }
 
 .btn-icon {
@@ -586,13 +653,26 @@ a.icon-btn {
 
 /* Chat action ---------------------------------------------------------- */
 
-/* Black, so a transcript copy never reads as "the same as Convert & Copy".
-   Same key shape, different material. */
+/* The page-conversion key is hidden on a conversation, so the chat copy takes
+   the ink pill itself — and carries the spectrum underneath it, a soft glow
+   that says "this is the AI conversation" without colouring the label. */
 .chat-action {
   position: relative;
   display: flex;
   gap: 0;
   border-radius: var(--r-pill);
+}
+
+.chat-action::before {
+  content: "";
+  position: absolute;
+  inset: 0.5rem 1.25rem -0.25rem;
+  border-radius: var(--r-pill);
+  background: var(--spectrum);
+  filter: blur(12px);
+  opacity: var(--glow-opacity);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .chat-action.hidden {
@@ -603,57 +683,40 @@ a.icon-btn {
   flex: 1;
   border-top-right-radius: var(--r-sm);
   border-bottom-right-radius: var(--r-sm);
-  background: linear-gradient(180deg, #35353a 0%, #1b1b1f 55%, #0d0d10 100%);
-  color: #fff;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 2px 6px rgba(0, 0, 0, 0.2),
-    0 1px 2px rgba(0, 0, 0, 0.12);
+  background: var(--action-color);
+  color: var(--action-label);
 }
 
-.dark-theme .chat-btn {
-  background: linear-gradient(180deg, #2a2a2f 0%, #161619 55%, #0a0a0c 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 0 0 1px var(--separator),
-    0 2px 6px rgba(0, 0, 0, 0.4);
+.chat-btn:hover {
+  background: var(--action-hover);
 }
 
 .chat-btn.is-pressed {
-  filter: brightness(1.35);
+  background: var(--action-pressed);
 }
 
-/* The count sits in the same key as its action, the way the split button's
-   caret does — it changes what the button copies, not what it means. */
 /* Caret-only segment: the current count lives in the menu's checkmark, not on
    the button, so the key stays narrow next to its action. */
 .chat-limit {
-  width: 2.875rem;
-  min-width: 2.875rem;
+  width: 2.75rem;
+  min-width: 2.75rem;
   margin-left: 2px;
   padding: 0;
   border-top-right-radius: var(--r-pill);
   border-bottom-right-radius: var(--r-pill);
   border-top-left-radius: var(--r-sm);
   border-bottom-left-radius: var(--r-sm);
-  background: linear-gradient(180deg, #35353a 0%, #1b1b1f 55%, #0d0d10 100%);
-  color: #fff;
-  box-shadow:
-    inset 1px 0 0 rgba(255, 255, 255, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 2px 6px rgba(0, 0, 0, 0.2);
+  background: var(--action-color);
+  color: var(--action-label);
+  box-shadow: inset 1px 0 0 var(--action-seam);
 }
 
-.dark-theme .chat-limit {
-  background: linear-gradient(180deg, #2a2a2f 0%, #161619 55%, #0a0a0c 100%);
-  box-shadow:
-    inset 1px 0 0 rgba(255, 255, 255, 0.1),
-    0 0 0 1px var(--separator),
-    0 2px 6px rgba(0, 0, 0, 0.4);
+.chat-limit:hover {
+  background: var(--action-hover);
 }
 
 .chat-limit.is-pressed {
-  filter: brightness(1.35);
+  background: var(--action-pressed);
 }
 
 /* The menu drops below its trigger — the action sits at the top of the stack,
@@ -680,7 +743,7 @@ a.icon-btn {
   width: 0.75rem;
   height: 0.75rem;
   margin-left: auto;
-  background-color: var(--primary-color);
+  background-color: var(--text-color);
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 13 4 4 10-10'/%3E%3C/svg%3E") no-repeat center / contain;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 13 4 4 10-10'/%3E%3C/svg%3E") no-repeat center / contain;
 }
@@ -691,8 +754,8 @@ a.icon-btn {
 .split-btn {
   position: relative;
   display: flex;
-  /* One continuous key: the seam is a hairline of light on the caret, not a
-     gap showing the background through the middle of the control. */
+  /* One continuous key: the seam is a hairline on the caret, not a gap
+     showing the background through the middle of the control. */
   gap: 0;
   border-radius: var(--r-pill);
 }
@@ -708,19 +771,15 @@ a.icon-btn {
 }
 
 .split-btn .split-btn-caret {
-  width: 2.875rem;
-  min-width: 2.875rem;
+  width: 2.75rem;
+  min-width: 2.75rem;
   padding: 0;
   border-top-right-radius: var(--r-pill);
   border-bottom-right-radius: var(--r-pill);
   border-top-left-radius: var(--r-sm);
   border-bottom-left-radius: var(--r-sm);
   margin-left: 2px;
-  box-shadow:
-    inset 1px 0 0 rgba(255, 255, 255, 0.26),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    0 2px 6px rgba(0, 0, 0, 0.14),
-    0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: inset 1px 0 0 var(--action-seam);
 }
 
 .split-btn.no-menu .split-btn-caret,
@@ -748,8 +807,6 @@ a.icon-btn {
   padding: var(--gap-xs);
   border-radius: var(--r-md);
   background: var(--material-menu);
-  -webkit-backdrop-filter: var(--material-blur-sm);
-  backdrop-filter: var(--material-blur-sm);
   border: 1px solid var(--separator);
   box-shadow: var(--shadow-2);
   /* Scales out of the caret that opened it — the spatial relationship between
@@ -773,7 +830,7 @@ a.icon-btn {
   border-radius: var(--r-sm);
   background: transparent;
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 450;
   text-align: left;
   cursor: pointer;
   transition: background-color var(--t-fast), transform var(--t-fast);
@@ -853,11 +910,13 @@ a.icon-btn {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.2M12 16.3v.2'/%3E%3C/svg%3E");
 }
 
+/* Work in progress is AI work, so the spinner is the spectrum. */
 .status.processing {
   color: var(--primary-color);
 }
 
 .status.processing::before {
+  background: var(--spectrum-conic);
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M12 3a9 9 0 1 0 9 9'/%3E%3C/svg%3E");
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M12 3a9 9 0 1 0 9 9'/%3E%3C/svg%3E");
   animation: scrapllm-spin 900ms linear infinite;
@@ -877,8 +936,8 @@ a.icon-btn {
 /* ==========================================================================
    TOKEN COUNTER
    ==========================================================================
-   Just the number and its unit, set in the monospaced face so the digits read
-   as data rather than as another label. No panel, no meter, no budget — the
+   Just the number and its unit, set in Geist Mono so the digits read as data
+   rather than as another label. No panel, no meter, no budget — the
    surrounding surface is the container.
    ========================================================================== */
 
@@ -897,9 +956,9 @@ a.icon-btn {
 }
 
 .token-value {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 1.0625rem;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.1;
   letter-spacing: -0.02em; /* the numerals are large, so the tracking tightens */
   font-variant-numeric: tabular-nums;
@@ -907,9 +966,10 @@ a.icon-btn {
 }
 
 .token-label {
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.08em; /* small caps open up */
+  font-weight: 500;
+  letter-spacing: 0.06em; /* small caps open up */
   text-transform: uppercase;
   color: var(--label-tertiary);
 }
@@ -924,12 +984,12 @@ a.icon-btn {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: var(--gap-md) var(--edge) var(--gap-xl);
+  padding: var(--gap-lg) var(--edge) var(--gap-xl);
   display: flex;
   flex-direction: column;
   gap: var(--gap-md);
-  /* Scroll edge effect: content dissolves where it meets the floating header
-     instead of being cut by a hard 1px divider. */
+  /* Scroll edge effect: content dissolves where it meets the header instead
+     of being cut mid-row. */
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0,
@@ -963,12 +1023,12 @@ a.icon-btn {
   background: var(--label-tertiary);
 }
 
+/* Broad, lightly contrasted cards: a sunken fill and a hairline, no shadow. */
 .setting-group {
-  padding: var(--gap-md);
-  border-radius: var(--r-md);
-  background: var(--surface-color);
+  padding: 0.875rem var(--gap-lg);
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
   border: 1px solid var(--separator);
-  box-shadow: var(--shadow-1);
   display: flex;
   flex-direction: column;
   gap: var(--gap-sm);
@@ -981,7 +1041,7 @@ a.icon-btn {
 .setting-option {
   display: flex;
   align-items: center;
-  gap: var(--gap-sm);
+  gap: 0.625rem;
   min-height: 1.75rem;
   margin: 0;
   padding: 0.125rem 0;
@@ -992,7 +1052,7 @@ a.icon-btn {
 .setting-option span {
   margin: 0;
   font-size: 0.8125rem;
-  letter-spacing: 0;
+  letter-spacing: -0.003em;
 }
 
 .setting-option.is-pressed span {
@@ -1002,17 +1062,19 @@ a.icon-btn {
 .setting-option small,
 .setting-group > small {
   font-size: 0.75rem;
-  line-height: 1.45;
+  line-height: 1.5;
   color: var(--label-secondary);
 }
 
+/* Ink controls, the same colour as the primary action: white on the dark
+   canvas, and the browser picks the contrasting tick on its own. */
 input[type="radio"],
 input[type="checkbox"] {
   width: 1rem;
   height: 1rem;
   margin: 0;
   flex: none;
-  accent-color: var(--primary-color);
+  accent-color: var(--action-color);
   cursor: pointer;
 }
 
@@ -1032,7 +1094,7 @@ input[type="checkbox"] {
 .theme-switcher {
   display: flex;
   gap: 0.125rem;
-  padding: 0.125rem;
+  padding: 0.1875rem;
   border-radius: var(--r-pill);
   background: var(--fill-tertiary);
 }
@@ -1059,7 +1121,7 @@ input[type="checkbox"] {
 .theme-btn.active {
   background: var(--surface-raised);
   color: var(--text-color);
-  box-shadow: var(--shadow-1);
+  box-shadow: 0 0 0 1px var(--separator), var(--shadow-1);
 }
 
 .theme-btn.is-pressed {
@@ -1089,13 +1151,14 @@ input[type="checkbox"] {
 }
 
 .shortcut-row code {
-  padding: 0.125rem 0.375rem;
+  padding: 0.125rem 0.4375rem;
   border-radius: var(--r-xs);
-  background: var(--fill-tertiary);
+  background: var(--surface-color);
+  box-shadow: inset 0 0 0 1px var(--separator);
   color: var(--text-color);
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
 
 .shortcut-customize {
@@ -1140,13 +1203,13 @@ input[type="checkbox"] {
 
 .metadata-format-input {
   width: 100%;
-  padding: var(--gap-sm);
+  padding: var(--gap-sm) 0.625rem;
   border: 1px solid var(--border-color);
   border-radius: var(--r-sm);
-  background: var(--background-color);
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  background: var(--surface-color);
+  font-family: var(--font-mono);
   font-size: 0.75rem;
-  line-height: 1.5;
+  line-height: 1.55;
   resize: vertical;
   transition: border-color var(--t-fast), box-shadow var(--t-fast);
 }
@@ -1163,10 +1226,10 @@ input[type="checkbox"] {
 
 .reset-btn,
 .token-limit-select {
-  padding: 0.3125rem 0.625rem;
+  padding: 0.3125rem 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: var(--r-sm);
-  background: var(--surface-raised);
+  border-radius: var(--r-pill);
+  background: var(--surface-color);
   color: var(--text-color);
   font-size: 0.75rem;
   font-weight: 500;
@@ -1202,11 +1265,11 @@ input[type="checkbox"] {
 /* ==========================================================================
    RESEARCH
    ==========================================================================
-   The bar is chrome: a translucent layer pinned to the bottom edge with the
-   action stack passing under it. The sheet is the task surface that bar
-   raises, so it comes up from the bar's own top edge and leaves the same way.
-   Every transform here belongs to a spring in popup.js — the only transitions
-   below are colour, shadow and the press scale.
+   The bar is chrome pinned to the bottom edge with the action stack passing
+   under it. The sheet is the task surface that bar raises, so it comes up
+   from the bar's own top edge and leaves the same way. Every transform here
+   belongs to a spring in popup.js — the only transitions below are colour,
+   shadow and the press scale.
    ========================================================================== */
 
 /* Scrim sits under the header (z 3) on purpose: dimming the way out would
@@ -1244,12 +1307,10 @@ input[type="checkbox"] {
   backdrop-filter: var(--material-blur-lg);
 }
 
-/* Two light translucent layers may never stack: the sheet passes under the bar,
-   and glass on glass erased the boundary between the run surface and the field
-   that raised it. While the sheet is up the bar is the solid one — the sheet
-   keeps the material, because it is the layer the page shows through. The edge
-   is an inset shadow rather than a border so the bar's height, which the sheet
-   pads itself by, does not change when it turns solid. */
+/* While the sheet is up the bar is the solid one and draws its edge, so the
+   boundary between the run surface and the field that raised it stays
+   visible. The edge is an inset shadow rather than a border so the bar's
+   height, which the sheet pads itself by, does not change. */
 #mainView.research-open .research-bar {
   background: var(--surface-color);
   -webkit-backdrop-filter: none;
@@ -1273,26 +1334,35 @@ input[type="checkbox"] {
   pointer-events: none;
 }
 
+/* The prompt box: a pill on a pale fill, the way Antigravity's agent input
+   sits at the bottom of its panel. */
 .research-field {
   display: flex;
   align-items: center;
   gap: var(--gap-sm);
   min-height: 2.375rem;
-  padding: 0.25rem 0.25rem 0.25rem 0.625rem;
+  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
   border-radius: var(--r-pill);
-  background: var(--fill-quaternary);
+  background: var(--fill-tertiary);
   box-shadow: inset 0 0 0 1px var(--separator);
   transition: background-color var(--t-fast), box-shadow var(--t-fast);
 }
 
 /* No focus ring. A text field announces its own focus with the caret, and the
-   surface lifts to meet it; the blue halo on top of that was a third statement
+   surface lifts to meet it; a blue halo on top of that was a third statement
    of the same fact, sitting directly under a button it had nothing to do with.
    (:focus-visible would not have helped — browsers set it on a text input even
    for a plain mouse click.) */
 .research-field:focus-within {
   background: var(--surface-color);
-  box-shadow: inset 0 0 0 1px var(--separator);
+  box-shadow: inset 0 0 0 1px var(--border-color);
+}
+
+/* A run in flight frames the field the way Antigravity frames a browser its
+   agent is driving: a thin blue line with a soft halo. It is the run's status
+   at a glance, visible with the sheet pushed down. */
+.research-bar.is-running .research-field {
+  box-shadow: var(--glow);
 }
 
 .research-glyph {
@@ -1310,11 +1380,10 @@ input[type="checkbox"] {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.6-3.6'/%3E%3C/svg%3E");
 }
 
-/* A run in flight is visible from the bar even with the sheet pushed down, and
-   it is the same yellow as the progress it is reporting: two marks for one run
-   should not be two different colours. */
+/* The spinner in the bar and the progress in the sheet are the same spectrum:
+   two marks for one run should not be two different colours. */
 .research-bar.is-running .research-glyph {
-  background-color: var(--action-color);
+  background: var(--spectrum-conic);
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M12 3a9 9 0 1 0 9 9'/%3E%3C/svg%3E");
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M12 3a9 9 0 1 0 9 9'/%3E%3C/svg%3E");
   animation: scrapllm-spin 900ms linear infinite;
@@ -1326,9 +1395,9 @@ input[type="checkbox"] {
   border: none;
   background: none;
   outline: none;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   line-height: 1.3;
-  letter-spacing: 0;
+  letter-spacing: -0.005em;
   color: var(--text-color);
 }
 
@@ -1338,9 +1407,10 @@ input[type="checkbox"] {
 
 .research-bar-note {
   flex: none;
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-weight: 500;
+  letter-spacing: 0;
   font-variant-numeric: tabular-nums;
   color: var(--label-secondary);
 }
@@ -1367,16 +1437,21 @@ input[type="checkbox"] {
   height: 1rem;
 }
 
-/* The sheet's own action is the system blue, not the yellow key. Two yellow
+/* The sheet's own action is the accent blue, not the ink key. Two ink
    controls a centimetre apart — this one and the go arrow in the bar directly
    below it — read as the same button drawn twice; the blue says they are two
    different things. */
 #researchStartBtn {
-  background: linear-gradient(180deg,
-    color-mix(in srgb, var(--primary-color) 86%, white) 0%,
-    var(--primary-color) 55%,
-    color-mix(in srgb, var(--primary-color) 88%, black) 100%);
-  color: #fff;
+  background: var(--primary-color);
+  color: var(--primary-label);
+}
+
+#researchStartBtn:hover {
+  background: var(--primary-hover);
+}
+
+#researchStartBtn.is-pressed {
+  background: var(--primary-active);
 }
 
 /* Sheet ---------------------------------------------------------------- */
@@ -1395,16 +1470,13 @@ input[type="checkbox"] {
      the button and the two surfaces read as one; the gap keeps the button
      clear of it. */
   padding: var(--gap-md) var(--edge) calc(var(--research-bar-h) + var(--gap-md));
-  /* Never covers the header — there is always a way out, and a light
-     translucent surface never stacks on another one. This is the value before
-     the first open; popup.js then measures the header's real bottom edge, so
-     a larger text size moves the ceiling with it. */
+  /* Never covers the header — there is always a way out. This is the value
+     before the first open; popup.js then measures the header's real bottom
+     edge, so a larger text size moves the ceiling with it. */
   max-height: calc(100% - 5.0625rem);
   border-radius: var(--r-xl) var(--r-xl) 0 0;
   border-top: 1px solid var(--material-edge);
-  background: var(--material-menu);
-  -webkit-backdrop-filter: var(--material-blur-lg);
-  backdrop-filter: var(--material-blur-lg);
+  background: var(--surface-color);
   box-shadow: var(--shadow-3);
   transform-origin: bottom center;
 }
@@ -1442,17 +1514,16 @@ input[type="checkbox"] {
   font-size: 1.0625rem;
   font-weight: 600;
   line-height: 1.2;
-  letter-spacing: -0.014em;
+  letter-spacing: -0.025em;
   color: var(--text-color);
 }
 
 .research-count {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  /* Small text wants a touch of air, not the tightening that suits display
-     sizes; the leading is tight because this is dense, numeric UI. */
-  letter-spacing: 0.01em;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  /* Dense, numeric UI: no tightening, tight leading. */
+  letter-spacing: 0;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
   color: var(--label-secondary);
@@ -1484,8 +1555,8 @@ input[type="checkbox"] {
 
 .research-lede {
   font-size: 0.8125rem;
-  line-height: 1.45;
-  letter-spacing: 0;
+  line-height: 1.5;
+  letter-spacing: -0.003em;
   color: var(--label-secondary);
 }
 
@@ -1497,11 +1568,11 @@ input[type="checkbox"] {
 }
 
 .research-plan-label {
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
-  font-weight: 600;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.055em;
-  /* Same reason as the host line: this sits on the blurred sheet. */
+  letter-spacing: 0.06em;
   color: var(--label-secondary);
 }
 
@@ -1509,7 +1580,7 @@ input[type="checkbox"] {
   position: relative;
   display: flex;
   gap: 0.125rem;
-  padding: 0.125rem;
+  padding: 0.1875rem;
   border-radius: var(--r-pill);
   background: var(--fill-tertiary);
 }
@@ -1518,13 +1589,13 @@ input[type="checkbox"] {
    springs in popup.js rather than blinking from one to the next. */
 .segment-indicator {
   position: absolute;
-  top: 0.125rem;
-  bottom: 0.125rem;
+  top: 0.1875rem;
+  bottom: 0.1875rem;
   left: 0;
   width: 0;
   border-radius: var(--r-pill);
   background: var(--surface-raised);
-  box-shadow: var(--shadow-1);
+  box-shadow: 0 0 0 1px var(--separator), var(--shadow-1);
   pointer-events: none;
 }
 
@@ -1536,8 +1607,9 @@ input[type="checkbox"] {
   border-radius: var(--r-pill);
   background: transparent;
   color: var(--label-secondary);
+  font-family: var(--font-mono);
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
   transition: color var(--t-fast), background-color var(--t-fast),
@@ -1569,32 +1641,8 @@ input[type="checkbox"] {
   font-size: 0.875rem;
 }
 
-/* Two keys side by side have to read as a pair. The stock secondary carries a
-   hairline ring, which next to the yellow key looks like a cut-out rather than
-   a second key — and a 1px ring around a capsule stairsteps on its curve. Here
-   it gets the same lit-edge treatment as its neighbour, one step quieter. */
-.research-actions .secondary-btn {
-  background: var(--surface-raised);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.06),
-    0 1px 2px rgba(0, 0, 0, 0.08);
-}
-
-.dark-theme .research-actions .secondary-btn {
-  background: var(--fill-tertiary);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.32);
-}
-
-.research-actions .secondary-btn:hover {
-  filter: brightness(1.03);
-}
-
 .research-actions .secondary-btn.is-pressed {
   transform: scale(0.975);
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.12);
 }
 
 /* Progress ------------------------------------------------------------- */
@@ -1625,9 +1673,9 @@ input[type="checkbox"] {
   height: 100%;
   width: 100%;
   border-radius: var(--r-pill);
-  /* The run was started by the yellow key, so its progress is yellow: the
-     colour ties the bar to the action rather than to the system accent. */
-  background: linear-gradient(90deg, var(--action-color-lo), var(--action-color));
+  /* A run is AI work, so its progress is the spectrum — the same colours as
+     the spinner in the bar. */
+  background: var(--spectrum);
   transform: scaleX(0);
   transform-origin: left center;
   will-change: transform;
@@ -1683,14 +1731,14 @@ input[type="checkbox"] {
   /* Rows read as rows: a little breathing room and a rounded field, so the
      eye can tell where one source ends and the next begins without a rule
      between them. */
-  padding: 0.3125rem 0.5rem;
+  padding: 0.375rem 0.5rem;
   border-radius: var(--r-sm);
 }
 
 /* Only the source being fetched is lit. Everything else stays flat, so the
    list has exactly one place the eye is pulled to. */
 .source-row[data-state="fetching"] {
-  background: var(--fill-quaternary);
+  background: var(--fill-tertiary);
 }
 
 .source-glyph {
@@ -1750,7 +1798,7 @@ input[type="checkbox"] {
   font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.3;
-  letter-spacing: 0;
+  letter-spacing: -0.005em;
   color: var(--text-color);
   white-space: nowrap;
   overflow: hidden;
@@ -1775,9 +1823,10 @@ input[type="checkbox"] {
    badge. */
 .source-path {
   flex: none;
+  font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 500;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   line-height: 1.3;
   color: var(--label-tertiary);
   white-space: nowrap;
@@ -1788,14 +1837,12 @@ input[type="checkbox"] {
   margin-right: 0.25rem;
 }
 
-/* Over a blurred, translucent surface flat grey text fails: these two lines sit
-   on the sheet with the main view's yellow action button moving under them, so
-   they take the secondary label and a little more weight rather than the
-   tertiary one. */
+/* The host is an address, so it is set like one: Geist Mono, in the secondary
+   label rather than the tertiary, because the line is small. */
 .source-host,
 .source-note {
   font-size: 0.6875rem;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   color: var(--label-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -1803,7 +1850,8 @@ input[type="checkbox"] {
 }
 
 .source-host {
-  font-weight: 500;
+  font-family: var(--font-mono);
+  font-weight: 400;
 }
 
 .source-note {
@@ -1813,7 +1861,7 @@ input[type="checkbox"] {
   /* The size of a capture is a number to compare against the other rows, so it
      is set in the monospaced face with tabular figures: the column lines up
      and the digits stop shifting as they change. */
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
   color: var(--label-tertiary);
@@ -1825,7 +1873,7 @@ input[type="checkbox"] {
 .source-row[data-state="skipped"] .source-note {
   font-family: inherit;
   font-variant-numeric: normal;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
 
 /* The verbatim reason is what this row exists to say. Right-aligned in 8rem it
@@ -1851,11 +1899,10 @@ input[type="checkbox"] {
   display: flex;
   flex-direction: column;
   gap: var(--gap-xs);
-  padding: var(--gap-md);
-  border-radius: var(--r-md);
-  background: var(--surface-color);
+  padding: var(--gap-md) 0.875rem;
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
   border: 1px solid var(--separator);
-  box-shadow: var(--shadow-1);
 }
 
 .research-result-note {
@@ -1865,7 +1912,7 @@ input[type="checkbox"] {
 }
 
 .result-file {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   /* Tighter than body copy: this is one dense line of filename. */
   line-height: 1.3;
@@ -1885,7 +1932,7 @@ input[type="checkbox"] {
 .result-sources {
   margin-left: auto;
   font-size: 0.6875rem;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   color: var(--label-secondary);
 }
 
@@ -2006,21 +2053,13 @@ input[type="checkbox"] {
   }
 }
 
-/* Frostier, not see-through: raise opacity and drop the blur. */
+/* Fully solid: drop the last of the blur and the soft glow. */
 @media (prefers-reduced-transparency: reduce) {
   .header,
   .split-btn-menu {
     background: var(--surface-color);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-  }
-
-  .header::after {
-    display: none;
-  }
-
-  .header {
-    border-bottom-color: var(--separator);
   }
 
   /* A mask on a solid surface is not a transparency effect, and deleting it
@@ -2045,22 +2084,27 @@ input[type="checkbox"] {
   .research-bar {
     border-top: 1px solid var(--separator);
   }
+
+  .chat-action::before {
+    display: none;
+  }
 }
 
-/* Near-solid surfaces with defined borders. */
+/* Near-solid surfaces with defined borders, and no decoration competing with
+   the text. */
 @media (prefers-contrast: more) {
   :root {
-    --label-secondary: rgba(60, 60, 67, 0.92);
-    --label-tertiary: rgba(60, 60, 67, 0.8);
-    --separator: rgba(60, 60, 67, 0.4);
-    --border-color: rgba(60, 60, 67, 0.6);
+    --label-secondary: #2b2d31;
+    --label-tertiary: #45474d;
+    --separator: rgba(18, 19, 23, 0.4);
+    --border-color: rgba(18, 19, 23, 0.6);
   }
 
   .dark-theme {
-    --label-secondary: rgba(235, 235, 245, 0.94);
-    --label-tertiary: rgba(235, 235, 245, 0.82);
-    --separator: rgba(235, 235, 245, 0.42);
-    --border-color: rgba(235, 235, 245, 0.6);
+    --label-secondary: #e2e4e8;
+    --label-tertiary: #c4c7cc;
+    --separator: rgba(255, 255, 255, 0.42);
+    --border-color: rgba(255, 255, 255, 0.6);
   }
 
   .header,
@@ -2084,6 +2128,11 @@ input[type="checkbox"] {
     box-shadow: inset 0 0 0 1px var(--border-color);
   }
 
+  #mainView > .container::before,
+  .chat-action::before {
+    display: none;
+  }
+
   /* The mark is the only thing on the row that is not a status, so it needs to
      survive the higher-contrast palette rather than fade into the host. */
   .source-path {
@@ -2103,12 +2152,21 @@ input[type="checkbox"] {
   display: none !important;
 }
 
-/* Telegram's own blue, not the extension's yellow key: the button belongs to
-   the conversation it copies, and its label names that conversation, so it
-   reads as "this one" rather than as a second generic copy. */
+/* Telegram's own blue, not the ink key: the button belongs to the
+   conversation it copies, and its label names that conversation, so it reads
+   as "this one" rather than as a second generic copy. Flat, like every other
+   key. */
 .primary-btn.telegram-btn {
-  background: linear-gradient(180deg, #47b8ec 0%, #2aabee 55%, #1d97d6 100%);
+  background: #2aabee;
   color: #fff;
+}
+
+.primary-btn.telegram-btn:hover {
+  background: #229ad8;
+}
+
+.primary-btn.telegram-btn.is-pressed {
+  background: #1d8bc4;
 }
 
 /* A long chat name uses the width it has, then elides — it may not grow the
@@ -2128,8 +2186,9 @@ input[type="checkbox"] {
   flex-direction: column;
   gap: var(--gap-sm);
   padding: var(--gap-sm) var(--gap-md);
-  border-radius: var(--r-lg, 0.875rem);
-  background: var(--fill-quaternary);
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
+  border: 1px solid var(--separator);
 }
 
 .telegram-row {
@@ -2140,10 +2199,12 @@ input[type="checkbox"] {
 
 .telegram-row-label {
   flex: none;
-  width: 4.25rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  width: 4.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--label-tertiary);
 }
 
@@ -2152,7 +2213,7 @@ input[type="checkbox"] {
   display: flex;
   flex: 1;
   gap: 0.125rem;
-  padding: 0.125rem;
+  padding: 0.1875rem;
   border-radius: var(--r-pill);
   background: var(--fill-tertiary);
 }
@@ -2166,28 +2227,28 @@ input[type="checkbox"] {
   color: var(--label-secondary);
   font: inherit;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: background-color var(--t-fast), color var(--t-fast);
 }
 
 .telegram-segment.is-selected {
-  background: var(--surface-color);
+  background: var(--surface-raised);
   color: var(--label-primary);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 0 0 1px var(--separator), var(--shadow-1);
 }
 
 /* The two dates share the row evenly, so neither can push the other out. */
 .telegram-date-input {
   flex: 1;
   min-width: 0;
-  padding: 0.25rem 0.375rem;
+  padding: 0.25rem 0.5rem;
   border: none;
-  border-radius: var(--r-sm, 0.5rem);
+  border-radius: var(--r-pill);
   background: var(--surface-color);
   box-shadow: inset 0 0 0 1px var(--separator);
   color: var(--label-primary);
-  font: inherit;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
 }
 
@@ -2228,7 +2289,7 @@ input[type="checkbox"] {
 
 /* The build id is there to be compared, so it is monospaced and selectable. */
 .about-value {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--label-primary);
   user-select: text;

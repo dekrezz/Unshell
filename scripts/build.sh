@@ -110,6 +110,8 @@ build_chrome() {
   mkdir -p "$CHROME_DIR/libs"
   cp "$EXT_DIR/icons/icon16.png" "$EXT_DIR/icons/icon48.png" "$EXT_DIR/icons/icon128.png" "$CHROME_DIR/icons/" 2>/dev/null
   cp "$EXT_DIR/libs/"* "$CHROME_DIR/libs/" 2>/dev/null
+  # The popup's fonts (Geist, with its OFL licence) and the particle halo.
+  cp -R "$EXT_DIR/assets" "$CHROME_DIR/" || { echo "ERROR: could not copy assets/"; exit 1; }
   
   # Create Chrome-specific manifest
   if command -v jq &> /dev/null; then
@@ -189,6 +191,7 @@ build_firefox() {
   mkdir -p "$FIREFOX_DIR/libs"
   cp "$EXT_DIR/icons/icon16.png" "$EXT_DIR/icons/icon48.png" "$EXT_DIR/icons/icon128.png" "$FIREFOX_DIR/icons/" 2>/dev/null
   cp "$EXT_DIR/libs/"* "$FIREFOX_DIR/libs/" 2>/dev/null
+  cp -R "$EXT_DIR/assets" "$FIREFOX_DIR/" || { echo "ERROR: could not copy assets/"; exit 1; }
   
   # Create Firefox-specific manifest with required settings
   if command -v jq &> /dev/null; then
@@ -275,6 +278,7 @@ build_source() {
   mkdir -p "$SOURCE_DIR/libs"
   cp "$EXT_DIR/icons/"* "$SOURCE_DIR/icons/" 2>/dev/null
   cp "$EXT_DIR/libs/"* "$SOURCE_DIR/libs/" 2>/dev/null
+  cp -R "$EXT_DIR/assets" "$SOURCE_DIR/" || { echo "ERROR: could not copy assets/"; exit 1; }
   
   # Create the ZIP file
   echo "Creating source ZIP file..."

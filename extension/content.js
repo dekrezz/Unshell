@@ -956,7 +956,7 @@
       display: flex;
       align-items: stretch;
       gap: 0;
-      background: ${reduceTransparency ? 'rgb(28, 28, 30)' : 'rgba(28, 28, 30, 0.82)'};
+      background: ${reduceTransparency ? 'rgb(18, 19, 23)' : 'rgba(18, 19, 23, 0.94)'};
       color: #ffffff;
       border-radius: 16px;
       box-shadow: 0 20px 56px rgba(0, 0, 0, 0.34), 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -964,11 +964,13 @@
       z-index: 2147483647;
       max-width: 380px;
       min-width: 300px;
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      /* The popup's Geist is an extension file the page cannot load without
+         exposing it to every site, so it is used here only when installed. */
+      font-family: Geist, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
       font-size: 14px;
       line-height: 1.45;
-      ${reduceTransparency ? '' : '-webkit-backdrop-filter: saturate(180%) blur(30px); backdrop-filter: saturate(180%) blur(30px);'}
-      border: 1px solid rgba(255, 255, 255, 0.14);
+      ${reduceTransparency ? '' : '-webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);'}
+      border: 1px solid rgba(255, 255, 255, 0.1);
       opacity: 0;
       touch-action: pan-y;
       cursor: grab;
@@ -1000,24 +1002,24 @@
           <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       `;
-      notification.style.boxShadow += ', inset 3px 0 0 #30d158';
-      iconWrapper.style.color = '#30d158';
+      notification.style.boxShadow += ', inset 3px 0 0 #81c995';
+      iconWrapper.style.color = '#81c995';
     } else if (title.toLowerCase().includes('error') || title.toLowerCase().includes('failed')) {
       iconSVG = `
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       `;
-      notification.style.boxShadow += ', inset 3px 0 0 #ff453a';
-      iconWrapper.style.color = '#ff453a';
+      notification.style.boxShadow += ', inset 3px 0 0 #f28b82';
+      iconWrapper.style.color = '#f28b82';
     } else {
       iconSVG = `
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M13 16H12V12H11M12 8H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       `;
-      notification.style.boxShadow += ', inset 3px 0 0 #0a84ff';
-      iconWrapper.style.color = '#0a84ff';
+      notification.style.boxShadow += ', inset 3px 0 0 #8ab4f8';
+      iconWrapper.style.color = '#8ab4f8';
     }
     iconWrapper.innerHTML = iconSVG;
 
