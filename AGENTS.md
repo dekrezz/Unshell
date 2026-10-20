@@ -153,9 +153,11 @@ of the source list is base64 image payloads. The answer comes from `main-col`.
 A full-page copy also appends the source column, `rhs-col`, one entry per card,
 linked to the publisher site on the card's favicon URL — the card's own link is
 the same opaque `/goto`. Off an AI Mode thread `convertPage` returns null and
-the page converts like any other: the registry's host pattern matches every
-Google host and subdomain (Docs, Gmail, an ordinary search), so refusing there
-would refuse all of them. The partial-transcript note is not added on this page.
+the page converts like any other: an ordinary search shares the AI Mode host
+and path, so refusing there would refuse every search. The registry's host
+pattern is Google Search only (`google.<tld>` and `www.`): a subdomain
+pattern would also claim `gemini.google.com`, which is listed after it, and
+Docs and Gmail. The partial-transcript note is not added on this page.
 
 **`reddit.js`** — the post plus its comment tree from Reddit's own JSON, fetched
 same-origin (no extra host permission, and the user's session applies). Falls

@@ -64,7 +64,9 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
       // google.com, google.co.uk, google.de… all serve it from /search, and the
       // udm parameter is what separates the AI conversation from a plain result
       // page on the very same path. /ai and /aimode are the entry points.
-      host: /(^|\.)google\.[a-z]{2,3}(?:\.[a-z]{2})?$/i,
+      // Search itself only: any subdomain would also claim Gemini, which is
+      // listed after this entry, and Docs and Gmail.
+      host: /^(?:www\.)?google\.[a-z]{2,3}(?:\.[a-z]{2})?$/i,
       thread: /^\/(?:search|ai(?:mode)?)(?:\/|$)/i,
       query: isGoogleAiModeRoute,
       extract: extractGoogleAiMode
@@ -841,6 +843,10 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
              (block.parentElement.textContent || '').trim() === (block.textContent || '').trim()) {
         block = block.parentElement;
       }
+      // A list item, a line of code, a table cell or a quote is the answer's
+      // own structure however short it is; Google's closing labels are none
+      // of these. Stopping here keeps the last item of a short list.
+      if (block.closest('ul, ol, dl, li, pre, code, table, blockquote')) break;
       if (!isFurniture(block)) break;
       // A short phrase inside a real paragraph (a bold span, a citation label)
       // has a parent that says much more than it does. A disclaimer's own
@@ -952,6 +958,8 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
       }
       // A line with a $ in it holds a formula (or a price): the answer's.
       if (last.length > FURNITURE_MAX_CHARS || /^[#>*\-+|]/.test(last) || last.includes('](') || last.includes('$')) break;
+      // A closing code fence (everything above it is code) or a numbered item.
+      if (/^(?:`{3,}|~{3,}|\d+[.)]\s)/.test(last)) break;
       lines.pop();
       removed++;
     }

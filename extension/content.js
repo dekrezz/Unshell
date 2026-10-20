@@ -847,8 +847,8 @@
     // hidden source list, whose text is base64 image payloads. The answer and
     // the source column are a different extractor. convertPage throws, saying
     // what was missing, on an AI Mode thread it cannot read, and returns null
-    // on every other page — an ordinary search, Docs, Gmail: every Google host
-    // matches the chat registry, so null there means "convert it as a page".
+    // on every other page, an ordinary search above all: it shares the AI
+    // Mode host and path, so null there means "convert it as a page".
     if (settings.contentScope !== 'chat' &&
         settings.contentScope !== 'selection' &&
         typeof ScrapLLMChat !== 'undefined' &&
