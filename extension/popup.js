@@ -221,7 +221,6 @@ const DEFAULT_TOKEN_SETTINGS = {
 // moment without waiting for anything to finish.
 
 const Motion = window.ScrapLLMMotion;
-const NAV_EDGE_DIM = 400; // popup width in px; the travel distance of the pan
 
 const navSpring = new Motion.Spring(0, {
   damping: Motion.PRESETS.move.damping,
@@ -230,27 +229,17 @@ const navSpring = new Motion.Spring(0, {
 });
 
 function renderNav(progress) {
-  // Settings slides in from the right; main is pushed back and dimmed so the
-  // hierarchy between the two layers stays readable while they travel.
-  settingsView.style.transform = `translate3d(${(1 - progress) * 100}%, 0, 0)`;
-  mainView.style.transform = `translate3d(${progress * -28}%, 0, 0)`;
-  mainView.style.opacity = String(1 - progress * 0.4);
-
-  // Reduced motion: the panel doesn't travel (motion.js lands the spring
-  // immediately), so the state change is carried by a short cross-fade
-  // instead of a jump cut.
-  if (Motion.prefersReducedMotion()) {
-    settingsView.style.opacity = progress > 0.5 ? "1" : "0";
-    mainView.style.opacity = progress > 0.5 ? "0" : "1";
-  } else {
-    settingsView.style.opacity = "1";
-  }
+  // Settings fades in over the main view, in place. Neither view travels: a
+  // panel that slid sideways moved under a held pointer and under text being
+  // selected, and read as the popup sliding away from the hand.
+  const shown = Motion.clamp(progress, 0, 1);
+  settingsView.style.opacity = String(shown);
+  mainView.style.opacity = String(1 - shown);
 
   const settingsShown = progress > 0.01;
   settingsView.setAttribute("aria-hidden", settingsShown ? "false" : "true");
   mainView.setAttribute("aria-hidden", progress > 0.99 ? "true" : "false");
   settingsView.classList.toggle("active", progress > 0.5);
-  mainView.classList.toggle("slide-out", progress > 0.5);
 }
 
 function showSettingsView() {
@@ -267,66 +256,6 @@ function showMainView() {
 // Both directions travel the same axis, and either can be driven by hand:
 // drag left anywhere on the main view to reveal settings, drag right on the
 // settings view to put it back.
-function initNavGestures() {
-  const settleNav = (progress, velocityPxPerSecond) => {
-    // Where the flick is going, not where the finger stopped.
-    const projectedPx = progress * NAV_EDGE_DIM + Motion.project(velocityPxPerSecond);
-    const projected = projectedPx / NAV_EDGE_DIM;
-    // Velocity sign wins over position whenever the gesture had real intent.
-    const decisive = Math.abs(velocityPxPerSecond) > 120;
-    const target = decisive
-      ? (velocityPxPerSecond > 0 ? 1 : 0)
-      : (projected > 0.5 ? 1 : 0);
-
-    navSpring.to(target, {
-      damping: Motion.PRESETS.sheet.damping,
-      response: Motion.PRESETS.sheet.response,
-      // Continue at exactly the speed the finger left, so there is no seam
-      // between dragging and animating.
-      velocity: velocityPxPerSecond / NAV_EDGE_DIM
-    });
-  };
-
-  const track = (startProgress, deltaPx) => {
-    // Raw 1:1 tracking inside the range, progressive resistance outside it.
-    let progress = startProgress + deltaPx / NAV_EDGE_DIM;
-    if (progress > 1) {
-      progress = 1 + Motion.rubberband(progress - 1, 1);
-    } else if (progress < 0) {
-      progress = Motion.rubberband(progress, 1);
-    }
-    navSpring.set(progress);
-  };
-
-  let startProgress = 0;
-
-  Motion.draggable(settingsView, {
-    axis: "x",
-    canStart: (event) => navSpring.value > 0.5 && !event.target.closest("textarea, select, input"),
-    onStart: () => { startProgress = navSpring.value; },
-    // Dragging right (positive delta) closes, so the progress delta is negated.
-    onMove: ({ delta }) => track(startProgress, -delta),
-    onEnd: ({ delta, velocity, cancelled }) => {
-      if (cancelled) { navSpring.to(startProgress, Motion.PRESETS.move); return; }
-      track(startProgress, -delta);
-      settleNav(navSpring.value, -velocity);
-    }
-  });
-
-  Motion.draggable(mainView, {
-    axis: "x",
-    canStart: (event) => navSpring.value < 0.5 &&
-      !event.target.closest("button, a, input, select, textarea") &&
-      !event.target.closest(".research-sheet, .research-bar"),
-    onStart: () => { startProgress = navSpring.value; },
-    onMove: ({ delta }) => track(startProgress, -delta),
-    onEnd: ({ delta, velocity, cancelled }) => {
-      if (cancelled) { navSpring.to(startProgress, Motion.PRESETS.move); return; }
-      track(startProgress, -delta);
-      settleNav(navSpring.value, -velocity);
-    }
-  });
-}
 
 // Theme management
 function setTheme(theme, options) {
@@ -1498,7 +1427,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document,
     "button, a.icon-btn, .setting-option"
   ));
-  safely("nav gestures", initNavGestures);
   safely("nav", () => renderNav(0));
 
   safely("theme", initTheme);

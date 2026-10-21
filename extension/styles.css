@@ -336,21 +336,18 @@ input {
   flex-direction: column;
   background-color: var(--background-color);
   overflow: hidden;
-  /* Transform is owned by motion.js springs — never by a CSS transition, so a
-     half-open settings panel can be grabbed and thrown back at any moment. */
-  will-change: transform;
+  /* The views cross-fade in place under a spring in popup.js; nothing about
+     them moves sideways. */
+  will-change: opacity;
 }
 
 /* Fallback placement before the spring runtime takes over (and if it never
    does): main visible, settings parked off-screen right. Same axis in, same
    axis out. */
-.view#mainView {
-  transform: translate3d(0, 0, 0);
-}
-
+/* Placement before the spring runtime takes over (and if it never does):
+   main shown, settings transparent over it. */
 .view#settingsView {
-  transform: translate3d(100%, 0, 0);
-  box-shadow: -1px 0 0 var(--separator), var(--shadow-2);
+  opacity: 0;
 }
 
 .view[aria-hidden="true"] {
