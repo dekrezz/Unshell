@@ -1,4 +1,4 @@
-// ScrapLLM Multi-Tab Utilities
+// Unshell Multi-Tab Utilities
 // Shared utilities for multi-tab processing in popup and background scripts
 
 const MultiTabUtils = (function() {

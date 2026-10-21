@@ -1,4 +1,4 @@
-// ScrapLLM Discord Extractor
+// Unshell Discord Extractor
 // Renders an open channel as a transcript: author, timestamp, message, and the
 // message a reply points at.
 //
@@ -282,7 +282,7 @@ var ScrapLLMDiscord = typeof ScrapLLMDiscord !== 'undefined' ? ScrapLLMDiscord :
     const sections = [header, '## Transcript', blocks.join('\n\n')];
     const notes = [];
     if (truncated) {
-      notes.push(`Only the most recent ${messages.length} messages were included (limit set in ScrapLLM settings).`);
+      notes.push(`Only the most recent ${messages.length} messages were included (limit set in Unshell settings).`);
     }
     notes.push('Read from the rendered channel, so history older than what loading reached is not here.');
     sections.push(`---\n> **Note:** ${notes.join(' ')}`);

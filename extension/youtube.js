@@ -1,4 +1,4 @@
-// ScrapLLM YouTube Extractor
+// Unshell YouTube Extractor
 // Renders a video page as: title, channel and facts, the full description, and
 // the comment thread.
 //
@@ -353,7 +353,7 @@ var ScrapLLMYouTube = typeof ScrapLLMYouTube !== 'undefined' ? ScrapLLMYouTube :
     const header = `## Comments (${formatNumber(rendered.length)})`;
     const notes = [];
     if (hitLimit) {
-      notes.push(`Only the first ${formatNumber(limit)} comments were included (limit set in ScrapLLM settings).`);
+      notes.push(`Only the first ${formatNumber(limit)} comments were included (limit set in Unshell settings).`);
     } else if (token) {
       notes.push('YouTube had more pages of comments than this run asked for.');
     }

@@ -1,4 +1,4 @@
-// ScrapLLM Background Script
+// Unshell Background Script
 // Handles keyboard shortcuts and background tasks
 // Dependencies: libs/jszip.min.js, settings.js, multi-tab-utils.js, search.js,
 // quiet-capture.js and research.js. Firefox's MV2 background is a real page, so

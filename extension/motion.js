@@ -1,4 +1,4 @@
-// ScrapLLM Motion
+// Unshell Motion
 // A tiny spring/gesture runtime shared by the popup and the in-page notification.
 //
 // Why not CSS transitions: anything the user can touch must be interruptible and

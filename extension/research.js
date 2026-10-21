@@ -1,4 +1,4 @@
-// ScrapLLM Research Engine
+// Unshell Research Engine
 // Owns a research run end to end: drives ScrapLLMSearch for discovery, captures
 // every accepted source, merges everything into one document, and reports
 // progress over the `scrapllm-research` port.
@@ -266,8 +266,8 @@ var ScrapLLMResearch = typeof ScrapLLMResearch !== 'undefined' ? ScrapLLMResearc
     storeAnnounced = true;
     console.info(
       store
-        ? 'ScrapLLM research: using storage.session for run state.'
-        : 'ScrapLLM research: storage.session unavailable, keeping run state in memory only.'
+        ? 'Unshell research: using storage.session for run state.'
+        : 'Unshell research: storage.session unavailable, keeping run state in memory only.'
     );
   }
 

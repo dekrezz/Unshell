@@ -1,4 +1,4 @@
-// ScrapLLM Telegram Extractor
+// Unshell Telegram Extractor
 // Renders the open Telegram Web conversation as a transcript: a channel, a
 // group, one forum topic, or a private chat.
 //
@@ -619,7 +619,7 @@ var ScrapLLMTelegram = typeof ScrapLLMTelegram !== 'undefined' ? ScrapLLMTelegra
       notes.push(`Loading reached ${messages.length} of the ${ceiling} asked for; the conversation has no more history above this point, or it stopped loading.`);
     }
     if (truncated) {
-      notes.push(`Only the most recent ${messages.length} messages were included (limit set in ScrapLLM).`);
+      notes.push(`Only the most recent ${messages.length} messages were included (limit set in Unshell).`);
     }
     if (undatedKept) {
       notes.push(`${undatedKept} message${undatedKept === 1 ? '' : 's'} sat under a date separator this build could not parse and were kept rather than filtered out.`);

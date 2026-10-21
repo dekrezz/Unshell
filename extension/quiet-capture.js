@@ -1,4 +1,4 @@
-// ScrapLLM Quiet Capture
+// Unshell Quiet Capture
 // The decision table for capturing a research source without opening a tab:
 // fetch the server-rendered HTML in the background, and decide from the answer
 // whether a real rendering engine would have done better.

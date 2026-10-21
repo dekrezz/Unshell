@@ -1,4 +1,4 @@
-// ScrapLLM Reddit Extractor
+// Unshell Reddit Extractor
 // Renders Reddit threads (post + comment tree) and listings as structured Markdown.
 //
 // Primary source is Reddit's public JSON representation of the current page
@@ -590,7 +590,7 @@ var ScrapLLMReddit = typeof ScrapLLMReddit !== 'undefined' ? ScrapLLMReddit : (f
 
     const notes = [];
     if (state.limitReached) {
-      notes.push(`Only the first ${formatNumber(state.limit)} comments were included (limit set in ScrapLLM settings).`);
+      notes.push(`Only the first ${formatNumber(state.limit)} comments were included (limit set in Unshell settings).`);
     }
     if (state.notLoaded > 0) {
       notes.push(`${formatNumber(state.notLoaded)} further replies sit behind Reddit's "continue this thread" links, which live under their own permalinks and were not fetched.`);
@@ -970,7 +970,7 @@ var ScrapLLMReddit = typeof ScrapLLMReddit !== 'undefined' ? ScrapLLMReddit : (f
 
     throw new Error(
       `Reddit extraction failed (${jsonError ? jsonError.message : 'no data'}). ` +
-      'Reload the page while logged in, or turn off Reddit mode in ScrapLLM settings to use the generic extractor.'
+      'Reload the page while logged in, or turn off Reddit mode in Unshell settings to use the generic extractor.'
     );
   }
 

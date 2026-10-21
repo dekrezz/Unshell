@@ -1,4 +1,4 @@
-// ScrapLLM Selection
+// Unshell Selection
 // Turns a highlighted fragment into a citable excerpt: where it came from,
 // which lines it covers, and whether it is prose or code.
 //

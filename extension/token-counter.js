@@ -1,4 +1,4 @@
-// ScrapLLM Token Counter
+// Unshell Token Counter
 // Client-side token counting using js-tiktoken
 // Dynamically loads encoding data from CDN to keep bundle size small
 

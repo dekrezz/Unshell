@@ -1,4 +1,4 @@
-// ScrapLLM offscreen parser (Chrome MV3 only)
+// Unshell offscreen parser (Chrome MV3 only)
 //
 // The service worker fetches a research source's HTML and sends it here to be
 // parsed and converted, because a worker has no DOM and Readability needs one.

@@ -1,4 +1,4 @@
-// ScrapLLM GitHub Extractor
+// Unshell GitHub Extractor
 // Renders a repository page as: heading, description and facts, the README,
 // and optionally the full file tree.
 //
@@ -247,7 +247,7 @@ var ScrapLLMGitHub = typeof ScrapLLMGitHub !== 'undefined' ? ScrapLLMGitHub : (f
     // Two different ways the list can be short of the whole repository, and
     // they are not the same fact: one is our ceiling, the other is GitHub's.
     if (all.length > entries.length) {
-      lines.push('', `> Showing the first ${formatNumber(entries.length)} of ${formatNumber(all.length)} entries (limit set in ScrapLLM settings).`);
+      lines.push('', `> Showing the first ${formatNumber(entries.length)} of ${formatNumber(all.length)} entries (limit set in Unshell settings).`);
     }
     if (treeData.truncated) {
       lines.push('', '> GitHub truncated the tree: this repository is too large to return in one request, so deeper paths are missing.');

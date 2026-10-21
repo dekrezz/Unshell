@@ -1,4 +1,4 @@
-// ScrapLLM Conversion Core
+// Unshell Conversion Core
 // The document-to-Markdown path, with every reference to the *live* page
 // removed so the same code runs in three places:
 //

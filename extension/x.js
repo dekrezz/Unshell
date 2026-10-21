@@ -1,4 +1,4 @@
-// ScrapLLM X (Twitter) Extractor
+// Unshell X (Twitter) Extractor
 // Renders X threads (post + replies) and listings (profile, feed, search) as
 // structured Markdown.
 //

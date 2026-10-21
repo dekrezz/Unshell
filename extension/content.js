@@ -1,4 +1,4 @@
-// ScrapLLM Content Script
+// Unshell Content Script
 (function() {
   'use strict';
 

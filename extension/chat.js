@@ -1,4 +1,4 @@
-// ScrapLLM Chat
+// Unshell Chat
 // Copies an LLM conversation — the whole thread or just the last N exchanges,
 // where one exchange is a user turn plus the assistant's reply.
 //
@@ -749,7 +749,7 @@ var ScrapLLMChat = typeof ScrapLLMChat !== 'undefined' ? ScrapLLMChat : (functio
       columns = Array.from(document.querySelectorAll('[data-container-id="main-col"]'));
       if (!columns.length) {
         throw extractionError(
-          'Google AI Mode: no question or answer found on this page. ScrapLLM reads each answer ' +
+          'Google AI Mode: no question or answer found on this page. Unshell reads each answer ' +
           'from Google\'s answer column ([data-container-id="main-col"]) and each question from the ' +
           'level-2 heading in front of it, and this page has neither. If a conversation is on ' +
           'screen, Google has changed its markup.'

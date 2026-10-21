@@ -1,4 +1,4 @@
-// ScrapLLM Search Client
+// Unshell Search Client
 // Source discovery for the research feature. Runs in the background context
 // only (service worker in Chrome, background page in Firefox) and is therefore
 // DOM-free: no DOMParser, no document, no XMLHttpRequest. DuckDuckGo's HTML
