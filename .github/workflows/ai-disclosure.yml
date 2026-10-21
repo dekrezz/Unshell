@@ -1,0 +1,72 @@
+name: AI Disclosure
+
+# Every pull request states whether AI was used and, if so, which model, as
+# AI_POLICY.md requires. The check reads the PR description, so editing the
+# description re-runs it.
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  check-disclosure:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check the AI disclosure in the PR description
+      env:
+        PR_BODY: ${{ github.event.pull_request.body }}
+      run: |
+        body=$(printf '%s\n' "$PR_BODY" | tr -d '\r')
+        failed=0
+
+        ticked() { grep -qiE "^[[:space:]]*- \[[xX]\][[:space:]]+$1" <<<"$body"; }
+        field() { grep -E "^[[:space:]]*$1:" <<<"$body" | head -n1 | sed -E "s/^[[:space:]]*$1:[[:space:]]*//; s/[[:space:]]+$//"; }
+
+        if ! grep -qi '^## AI disclosure' <<<"$body"; then
+          echo "::error::The PR description has no '## AI disclosure' section. Copy it from .github/pull_request_template.md."
+          exit 1
+        fi
+
+        no_ai=0; ai=0
+        ticked 'No AI was used' && no_ai=1
+        ticked 'AI was used' && ai=1
+
+        if [ $((no_ai + ai)) -ne 1 ]; then
+          echo "::error::Tick exactly one of 'No AI was used for this PR' and 'AI was used for this PR'."
+          failed=1
+        fi
+
+        if [ "$ai" -eq 1 ]; then
+          tool=$(field 'Tool')
+          model=$(field 'Model')
+          what=$(field 'What it did')
+          if [ -z "$tool" ]; then
+            echo "::error::AI was used but 'Tool:' is empty. Name the tool, e.g. Claude Code or Cursor."
+            failed=1
+          fi
+          if [ -z "$model" ]; then
+            echo "::error::AI was used but 'Model:' is empty. Name the exact model, e.g. Claude Opus 5.5."
+            failed=1
+          elif ! grep -q '[0-9]' <<<"$model"; then
+            echo "::error::'Model: $model' has no version. Name the exact model with its version, e.g. Claude Opus 5.5."
+            failed=1
+          fi
+          if [ -z "$what" ]; then
+            echo "::error::AI was used but 'What it did:' is empty. Say what the model wrote."
+            failed=1
+          fi
+        fi
+
+        if ! ticked 'I understand every line of this diff'; then
+          echo "::error::Tick 'I understand every line of this diff'. It is required for every PR. See AI_POLICY.md."
+          failed=1
+        fi
+
+        if [ "$failed" -ne 0 ]; then exit 1; fi
+
+        if [ "$ai" -eq 1 ]; then
+          echo "AI disclosed: $tool, $model"
+        else
+          echo "No AI disclosed"
+        fi

@@ -77,6 +77,7 @@ Open any page and press `Alt+Shift+M`, or click the toolbar button and pick an a
 - [Project layout](#project-layout)
 - [Build](#build)
 - [Credits](#credits)
+- [Contributing](#contributing)
 - [License](#license)
 
 ---
@@ -225,6 +226,10 @@ Packages land in `dist/`. The Firefox build only copies files and rewrites two m
 
 - [Mozilla Readability](https://github.com/mozilla/readability) (Apache-2.0), [Turndown](https://github.com/mixmark-io/turndown) (MIT, with local edits disclosed in [REVIEWERS.md](REVIEWERS.md)), [JSZip](https://github.com/Stuk/jszip) (MIT / GPLv3) and [webextension-polyfill](https://github.com/mozilla/webextension-polyfill) (MPL-2.0), bundled in `extension/libs/`.
 - [Geist and Geist Mono](https://github.com/vercel/geist-font) by Vercel, in collaboration with basement.studio (SIL OFL 1.1), bundled in `extension/assets/fonts/` with their licence.
+
+## Contributing
+
+Start with [CONTRIBUTING.md](CONTRIBUTING.md). Every pull request discloses its AI use under [AI_POLICY.md](AI_POLICY.md). Report vulnerabilities privately, as described in [SECURITY.md](SECURITY.md).
 
 ## License
 
