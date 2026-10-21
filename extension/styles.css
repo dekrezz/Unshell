@@ -96,13 +96,8 @@
 
   /* Labels */
   --text-color: #121317;
-  --label-primary: var(--text-color);
   --label-secondary: #45474d;
   --label-tertiary: #7c7f87;
-  --dark-gray: var(--label-secondary);
-  /* popup.html's inline hints ask for this name; without it they fell back to
-     the full ink colour. */
-  --text-secondary: var(--label-secondary);
 
   /* Fills & lines */
   --fill-quaternary: rgba(18, 19, 23, 0.03);
@@ -112,8 +107,6 @@
   --secondary-hover: #e5e6ea;
   --border-color: rgba(18, 19, 23, 0.14);
   --separator: rgba(18, 19, 23, 0.08);
-  --light-gray: var(--fill-quaternary);
-  --setting-hover: var(--fill-tertiary);
 
   /* Elevation — faint by design: hairlines carry structure, not shadows. */
   --shadow-1: 0 1px 2px rgba(18, 19, 23, 0.05);
@@ -198,6 +191,21 @@
   --shadow-2: 0 14px 36px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
   --shadow-3: 0 -14px 44px -10px rgba(0, 0, 0, 0.7);
 
+}
+
+/* Aliases are declared on the theme classes as well as the root. A custom
+   property that refers to another resolves where it is declared: set only on
+   :root, these took the light values and kept them inside .dark-theme, which
+   put ink-coloured text on the dark field. popup.html's inline hints ask for
+   --text-secondary by name. */
+:root,
+.light-theme,
+.dark-theme {
+  --label-primary: var(--text-color);
+  --dark-gray: var(--label-secondary);
+  --text-secondary: var(--label-secondary);
+  --light-gray: var(--fill-quaternary);
+  --setting-hover: var(--fill-tertiary);
 }
 
 /* ==========================================================================
