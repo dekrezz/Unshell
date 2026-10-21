@@ -102,8 +102,11 @@ const browserAPI = (function () {
 // DOM elements - Main view
 const convertBtn = document.getElementById("convertBtn");
 const convertSplit = document.getElementById("convertSplit");
-const convertMenuBtn = document.getElementById("convertMenuBtn");
-const convertMenu = document.getElementById("convertMenu");
+const pageGlyph = document.getElementById("pageGlyph");
+const pageHost = document.getElementById("pageHost");
+const pageMode = document.getElementById("pageMode");
+const pageTitle = document.getElementById("pageTitle");
+const pageTabs = document.getElementById("pageTabs");
 const convertOverrideBtn = document.getElementById("convertOverrideBtn");
 const convertOverrideLabel = convertOverrideBtn ? convertOverrideBtn.querySelector(".override-label") : null;
 const copySelectionBtn = document.getElementById("copySelectionBtn");
@@ -535,6 +538,7 @@ async function initChatAction() {
     if (!info || !info.isChat) return;
 
     chatAction.classList.remove("hidden");
+    setPageMode("chat", info.label ? `Chat · ${info.label}` : "Chat");
 
     // A chat transcript is virtualised: converting the page captures whichever
     // messages happen to be rendered, which is a slice of the middle dressed up
@@ -720,11 +724,97 @@ async function initTelegramAction() {
     telegramBtnText.textContent = telegramButtonLabel(info);
     copyTelegramBtn.title = `Copy this Telegram ${info.kind === "private" ? "chat" : info.kind} as Markdown`;
     telegramAction.classList.remove("hidden");
+    setPageMode("telegram", "Telegram");
     convertSplit.classList.add("hidden");
     chatPageFallback = true;
   } catch (error) {
     // No content script on this page.
   }
+}
+
+// The card at the top names what is about to be copied: the page's host and
+// title, and the mode that decides which action leads. It is filled from the
+// tab the popup opened on; a page the browser keeps to itself (about:, the
+// store) keeps the card's own "This page" rather than a guess.
+function setPageMode(mode, label) {
+  mainView.dataset.mode = mode;
+  pageMode.textContent = label;
+}
+
+function hostOf(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch (error) {
+    return "";
+  }
+}
+
+function renderPage(tab) {
+  const url = tab.url || "";
+  const host = hostOf(url);
+  pageHost.textContent = host || url;
+  pageGlyph.textContent = (host || url || "·").charAt(0).toUpperCase();
+  const title = (tab.title || "").trim();
+  pageTitle.textContent = title || host || "This page";
+  pageTitle.title = title;
+}
+
+async function initPageCard() {
+  const tabs = await browserAPI.tabs.query({ active: true, currentWindow: true });
+  if (!tabs || tabs.length === 0) return;
+  // The highlighted-tabs probe runs alongside this one; when it has already
+  // turned the card into a list of tabs, the active tab is only one of them.
+  if (mainView.dataset.mode === "multi") return;
+  renderPage(tabs[0]);
+}
+
+// Several highlighted tabs: the card lists them, so the count on the key is
+// backed by names the user can check before merging.
+const PAGE_TABS_SHOWN = 4;
+
+function renderPageTabs(tabs) {
+  pageGlyph.textContent = String(tabs.length);
+  pageHost.textContent = "selected tabs";
+  pageTitle.textContent = `${tabs.length} tabs, merged into one document`;
+  pageTitle.title = "";
+  const items = tabs.slice(0, PAGE_TABS_SHOWN).map((tab) => {
+    const item = document.createElement("li");
+    item.textContent = (tab.title || "").trim() || hostOf(tab.url || "") || tab.url || "Untitled tab";
+    return item;
+  });
+  if (tabs.length > PAGE_TABS_SHOWN) {
+    const more = document.createElement("li");
+    more.className = "page-tabs-more";
+    more.textContent = `and ${tabs.length - PAGE_TABS_SHOWN} more`;
+    items.push(more);
+  }
+  pageTabs.replaceChildren(...items);
+  pageTabs.classList.remove("hidden");
+}
+
+// The recipe chips on the card drive the Formatting checkboxes in Settings and
+// follow them back. A chip that points at a setting that is not there is a
+// build mistake, so it says so instead of quietly doing nothing.
+const recipeChips = Array.from(document.querySelectorAll(".recipe-chip"));
+
+function syncRecipeChips() {
+  recipeChips.forEach((chip) => {
+    const box = document.getElementById(chip.dataset.setting);
+    chip.setAttribute("aria-pressed", box && box.checked ? "true" : "false");
+  });
+}
+
+function initRecipeChips() {
+  recipeChips.forEach((chip) => {
+    const box = document.getElementById(chip.dataset.setting);
+    if (!box) throw new Error(`Recipe chip points at a missing setting: ${chip.dataset.setting}`);
+    chip.addEventListener("click", () => {
+      box.checked = !box.checked;
+      box.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    box.addEventListener("change", syncRecipeChips);
+  });
+  syncRecipeChips();
 }
 
 // Load user settings
@@ -946,6 +1036,8 @@ async function detectSelectedTabsAndUpdateUI() {
     if (validTabs.length > 1) {
       // Multi-tab mode - switch to multi-tab UI
       showMultiTabUI(validTabs.length);
+      setPageMode("multi", `${validTabs.length} tabs`);
+      renderPageTabs(validTabs);
       return validTabs;
     } else {
       // Single-tab mode (already showing)
@@ -1357,78 +1449,24 @@ async function downloadMarkdown() {
   }
 }
 
-// Convert split-button menu helpers
+// The key beside the primary copy is the opposite of the saved scope, for this
+// copy only. Selection scope has no useful inverse, so the key steps away.
 function updateConvertSplitVisibility() {
   const checked = document.querySelector('input[name="contentScope"]:checked');
   const scope = checked ? checked.value : "mainContent";
 
-  // Caret offers the opposite of the saved scope. Selection scope has no useful inverse.
   if (scope === "mainContent") {
-    convertSplit.classList.remove("no-menu");
-    convertOverrideLabel.textContent = "Copy full page";
+    convertOverrideBtn.classList.remove("hidden");
+    convertOverrideLabel.textContent = "Full page";
     convertOverrideBtn.title = "Override the Main-content-only setting and copy the full page this once";
     convertOverrideBtn.dataset.scope = "fullPage";
   } else if (scope === "fullPage") {
-    convertSplit.classList.remove("no-menu");
-    convertOverrideLabel.textContent = "Copy main content only";
+    convertOverrideBtn.classList.remove("hidden");
+    convertOverrideLabel.textContent = "Main content";
     convertOverrideBtn.title = "Override the Full-page setting and copy main content only this once";
     convertOverrideBtn.dataset.scope = "mainContent";
   } else {
-    convertSplit.classList.add("no-menu");
-    closeConvertMenu();
-  }
-}
-
-// The menu is a material arriving, not an element fading: blur, scale and
-// offset resolve together out of the caret that opened it, and dismissal
-// retraces the same path so the spatial relationship stays obvious.
-const menuSpring = new Motion.Spring(0, {
-  damping: Motion.PRESETS.snappy.damping,
-  response: Motion.PRESETS.snappy.response,
-  onUpdate: (value) => {
-    const eased = Motion.clamp(value, 0, 1.05);
-    convertMenu.style.transform =
-      `translate3d(0, ${(1 - eased) * 6}px, 0) scale(${0.9 + eased * 0.1})`;
-    convertMenu.style.opacity = String(Motion.clamp(eased * 1.4, 0, 1));
-    convertMenu.style.filter = eased > 0.99 ? "none" : `blur(${(1 - eased) * 6}px)`;
-    caretSpring.to(eased > 0.5 ? 1 : 0, Motion.PRESETS.snappy);
-  },
-  onRest: (spring) => {
-    if (spring.value <= 0.001) convertMenu.classList.add("hidden");
-  }
-});
-
-const caretSpring = new Motion.Spring(0, {
-  damping: Motion.PRESETS.rotate.damping,
-  response: Motion.PRESETS.rotate.response,
-  onUpdate: (value) => {
-    const caret = convertMenuBtn.querySelector(".caret-icon");
-    if (caret) caret.style.transform = `rotate(${value * 180}deg)`;
-  }
-});
-
-function isConvertMenuOpen() {
-  return !convertMenu.classList.contains("hidden") && menuSpring.target > 0.5;
-}
-
-function openConvertMenu() {
-  convertMenu.classList.remove("hidden");
-  convertMenuBtn.setAttribute("aria-expanded", "true");
-  menuSpring.to(1, Motion.PRESETS.snappy);
-  convertOverrideBtn.focus();
-}
-
-function closeConvertMenu() {
-  convertMenuBtn.setAttribute("aria-expanded", "false");
-  if (convertMenu.classList.contains("hidden")) return;
-  menuSpring.to(0, Motion.PRESETS.snappy);
-}
-
-function toggleConvertMenu() {
-  if (isConvertMenuOpen()) {
-    closeConvertMenu();
-  } else {
-    openConvertMenu();
+    convertOverrideBtn.classList.add("hidden");
   }
 }
 
@@ -1463,7 +1501,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // Not awaited: the buttons below must be wired whether or not stored
   // settings can be read. Firefox refuses storage.sync for an add-on loaded
   // with a temporary id, and that refusal used to take the whole popup with it.
-  safely("settings", loadSettings);
+  safely("recipe chips", initRecipeChips);
+  safely("settings", () => loadSettings().then(syncRecipeChips));
+  safely("page card", initPageCard);
   safely("selection action", initSelectionAction);
   safely("chat action", initChatAction);
   safely("telegram action", initTelegramAction);
@@ -1476,10 +1516,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Single-tab button clicks
-  convertBtn.addEventListener("click", () => {
-    closeConvertMenu();
-    convertToMarkdown();
-  });
+  convertBtn.addEventListener("click", () => convertToMarkdown());
   copySelectionBtn.addEventListener("click", () => convertToMarkdown("selection"));
   copyChatBtn.addEventListener("click", () => convertToMarkdown("chat"));
 
@@ -1530,41 +1567,20 @@ document.addEventListener("DOMContentLoaded", () => {
     radio.addEventListener("change", updateConvertSplitVisibility);
   });
 
-  convertMenuBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    toggleConvertMenu();
-  });
-
   convertOverrideBtn.addEventListener("click", () => {
-    const override = convertOverrideBtn.dataset.scope || "fullPage";
-    closeConvertMenu();
-    convertToMarkdown(override);
+    convertToMarkdown(convertOverrideBtn.dataset.scope || "fullPage");
   });
 
   document.addEventListener("click", (e) => {
-    if (isConvertMenuOpen() && !convertSplit.contains(e.target)) {
-      closeConvertMenu();
-    }
     if (isChatLimitMenuOpen() && !chatAction.contains(e.target)) {
       closeChatLimitMenu();
     }
   });
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && isConvertMenuOpen()) {
-      closeConvertMenu();
-      convertMenuBtn.focus();
-    }
     if (e.key === "Escape" && isChatLimitMenuOpen()) {
       closeChatLimitMenu();
       chatLimitBtn.focus();
-    }
-  });
-
-  // Close the menu when focus leaves the split-button container (e.g. user tabs away)
-  convertSplit.addEventListener("focusout", (e) => {
-    if (!convertSplit.contains(e.relatedTarget)) {
-      closeConvertMenu();
     }
   });
 
@@ -2889,7 +2905,7 @@ function initResearch() {
 
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    if (isConvertMenuOpen() || isChatLimitMenuOpen()) return;
+    if (isChatLimitMenuOpen()) return;
     // Escape dismisses the sheet and nothing else, running or not. Pushing the
     // sheet away with a drag leaves the run alive and the bar counting, so the
     // keyboard form of the same gesture must not instead destroy four minutes

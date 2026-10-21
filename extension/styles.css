@@ -1,4 +1,4 @@
-/* ScrapLLM Styles
+/* Unshell Styles
  * Created by @dekrezz (https://github.com/dekrezz)
  *
  * Design notes (see AGENTS.md → "Motion and interface"):
@@ -120,9 +120,6 @@
   --shadow-2: 0 12px 32px -8px rgba(18, 19, 23, 0.16), 0 2px 6px rgba(18, 19, 23, 0.05);
   --shadow-3: 0 -12px 40px -10px rgba(18, 19, 23, 0.16);
 
-  /* Decoration */
-  --particles-opacity: 0.9;
-  --glow-opacity: 0.42;
 
   /* Radii */
   --r-xs: 0.375rem;
@@ -201,8 +198,6 @@
   --shadow-2: 0 14px 36px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
   --shadow-3: 0 -14px 44px -10px rgba(0, 0, 0, 0.7);
 
-  --particles-opacity: 0.7;
-  --glow-opacity: 0.32;
 }
 
 /* ==========================================================================
@@ -367,24 +362,8 @@ input {
   padding: 0;
 }
 
-/* The particle halo: Antigravity's signature, drawn once as an SVG and set
-   behind the action stack, above the research bar. It is decoration — no
-   pointer, no reading order, dimmed with everything else by the scrim. */
-#mainView > .container::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--research-bar-h) - 0.5rem);
-  height: 12.5rem;
-  background: url("assets/particles.svg") no-repeat center bottom / 25rem auto;
-  opacity: var(--particles-opacity);
-  pointer-events: none;
-  z-index: 0;
-}
-
 /* ==========================================================================
-   CHROME — a thin top bar, logo left, controls right
+   CHROME — a thin top bar: the mark and the name left, settings right
    ========================================================================== */
 
 .header {
@@ -394,32 +373,35 @@ input {
   align-items: center;
   justify-content: space-between;
   gap: var(--gap-sm);
-  padding: var(--gap-md) var(--edge);
+  padding: 0.625rem var(--edge) 0.625rem 1.125rem;
   background: var(--material-chrome);
   -webkit-backdrop-filter: var(--material-blur-lg);
   backdrop-filter: var(--material-blur-lg);
-  /* One hairline, the way Antigravity draws its navigation line. */
   border-bottom: 1px solid var(--separator);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.5rem;
   min-width: 0;
 }
 
-.brand-logo {
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: var(--r-xs);
+/* The shell opened at the corner, its kernel in the label colour, so the mark
+   follows the theme without a second asset. */
+.brand-mark {
+  width: 1.375rem;
+  height: 1.375rem;
   flex: none;
+  color: var(--text-color);
 }
 
-.brand h1 {
-  font-size: 1rem;
+.brand-name {
+  font-size: 1.0625rem;
   font-weight: 600;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--text-color);
 }
 
 .header-actions {
@@ -450,7 +432,7 @@ a.icon-btn {
   height: 2rem;
   padding: 0;
   border: none;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-sm);
   background: transparent;
   color: var(--label-secondary);
   cursor: pointer;
@@ -476,41 +458,47 @@ a.icon-btn {
 
 /* ==========================================================================
    MAIN VIEW
-   ========================================================================== */
+   ==========================================================================
+   Three bands, top to bottom: the page being copied, one ink key that copies
+   it, and a row of quieter keys for the variants. The page card takes the
+   height that is left, so the popup has no empty field to decorate. */
 
-/* The header carries its own inset; padding here as well put the logo a
-   whole gutter further in than the actions under it. */
 .top-section {
   padding: 0;
 }
 
-/* Content sits under the top edge rather than floating in the middle of an
-   empty field: the primary action is the first thing the eye lands on. */
 .center-section {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  padding: var(--gap-xl) var(--edge) var(--gap-lg);
+  padding: var(--gap-lg) var(--edge) var(--gap-md);
   min-height: 0;
-  /* Must stay visible: the split-button menu opens upward out of this box, and
-     clipping (or a mask, which also creates a stacking context) would slice it
-     off. It sits above the header so the menu is never tucked underneath. */
+  /* Must stay visible: the chat-limit menu drops out of this box, and a clip
+     (or a mask, which is also a stacking context) would slice it off. */
   position: relative;
   z-index: 4;
   overflow: visible;
 }
 
 .bottom-spacer {
-  /* Clears the research bar, so the action stack never sits underneath it —
-     the bar's real height plus a gap, not a constant that drifts from it. */
-  height: calc(var(--research-bar-h) + var(--gap-sm));
+  /* Clears the research bar — its real height plus a gap, not a constant that
+     drifts from it. */
+  height: calc(var(--research-bar-h) + var(--gap-xs));
+  flex: none;
+}
+
+/* Merging tabs takes the research bar away; the band it held goes back to
+   the card. */
+#mainView[data-mode="multi"] .bottom-spacer {
+  height: var(--gap-sm);
 }
 
 .main-controls {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: var(--gap-md);
+  min-height: 0;
 }
 
 .action-buttons,
@@ -518,6 +506,7 @@ a.icon-btn {
   display: flex;
   flex-direction: column;
   gap: var(--gap-sm);
+  flex: none;
 }
 
 .multi-tab-actions.hidden,
@@ -525,24 +514,260 @@ a.icon-btn {
   display: none !important;
 }
 
-.tab-count-badge {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--gap-xs);
-  padding: 0.25rem 0.625rem;
-  border-radius: var(--r-pill);
-  background: var(--primary-tint);
-  color: var(--primary-color);
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0;
+/* Page card ------------------------------------------------------------ */
+
+.page-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 0.875rem 1rem 0.75rem;
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
+  border: 1px solid var(--separator);
+  position: relative;
+  overflow: hidden;
 }
 
-.tab-count-badge span {
+.page-meta,
+.page-recipe,
+.page-receipt,
+.page-card .telegram-options {
+  flex: none;
+}
+
+.page-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+/* The host's initial on an ink tile: the one solid shape in the card, so the
+   eye finds the subject before it reads it. */
+.page-glyph {
+  width: 1.625rem;
+  height: 1.625rem;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+  background: var(--action-color);
+  color: var(--action-label);
   font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
   font-weight: 600;
+  line-height: 1;
+}
+
+.page-glyph:empty::before {
+  content: "·";
+}
+
+.page-host {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--label-secondary);
+}
+
+.page-mode {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.1875rem 0.5rem;
+  border-radius: var(--r-pill);
+  background: var(--fill-secondary);
+  color: var(--label-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* A conversation is AI work, and the spectrum is reserved for AI work: one
+   dot of it, on the label that says so. */
+#mainView[data-mode="chat"] .page-mode::before {
+  content: "";
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 50%;
+  background: var(--spectrum-conic);
+}
+
+.page-title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--text-color);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  flex: none;
+}
+
+/* On Telegram the key already names the conversation, and on merged tabs the
+   list does: the title would only repeat it, in room the limits need. */
+#mainView[data-mode="telegram"] .page-title,
+#mainView[data-mode="multi"] .page-title {
+  display: none;
+}
+
+.page-tabs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  counter-reset: source-tab;
+}
+
+.page-tabs li {
+  counter-increment: source-tab;
+  display: flex;
+  gap: 0.5rem;
+  min-width: 0;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.page-tabs li::before {
+  content: counter(source-tab);
+  flex: none;
+  width: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.6;
+  color: var(--label-tertiary);
+}
+
+.page-tabs li.page-tabs-more {
+  color: var(--label-secondary);
+}
+
+.page-tabs li.page-tabs-more::before {
+  content: "+";
+}
+
+/* The Telegram limits are part of *what* is copied, so they sit on the card,
+   flat, instead of in a box of their own. */
+.page-card .telegram-options {
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 0;
+}
+
+#mainView:not([data-mode="telegram"]) .telegram-options {
+  display: none;
+}
+
+/* Recipe chips: what the Markdown keeps. On is a filled chip in the label
+   colour; off is an outline, struck through, in the quiet colour — so the
+   state is carried by fill and the strike as well as by colour. */
+.page-recipe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: auto;
+}
+
+#mainView[data-mode="telegram"] .page-recipe,
+#mainView[data-mode="multi"] .page-recipe {
+  display: none;
+}
+
+.recipe-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.625rem;
+  padding: 0 0.5625rem;
+  border: 1px solid var(--separator);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--label-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background-color var(--t-fast), color var(--t-fast),
+    border-color var(--t-fast), transform var(--t-fast);
+}
+
+.recipe-chip:hover {
+  border-color: var(--border-color);
+  color: var(--label-secondary);
+}
+
+.recipe-chip[aria-pressed="true"] {
+  background: var(--surface-raised);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+.recipe-chip[aria-pressed="false"] {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.recipe-chip.is-pressed {
+  transform: scale(0.95);
+}
+
+/* The outcome of a copy lands on the card's foot: what happened on the left,
+   how big it was on the right. */
+.page-receipt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  min-height: 1.25rem;
+}
+
+/* Work in progress is AI work, so the card's top edge runs the spectrum while
+   a copy is being made. Without :has() the status line still says so. */
+.page-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: var(--spectrum);
+  background-size: 200% 100%;
+  opacity: 0;
+  transition: opacity var(--t-base);
+  pointer-events: none;
+}
+
+.page-card:has(.status.processing)::before {
+  opacity: 1;
+  animation: unshell-sweep 1.2s linear infinite;
+}
+
+@keyframes unshell-sweep {
+  from { background-position: 0% 0; }
+  to { background-position: -200% 0; }
 }
 
 /* ==========================================================================
@@ -560,10 +785,10 @@ a.icon-btn {
   min-height: 2.75rem;
   padding: 0.625rem 1.25rem;
   border: none;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-md);
   font-size: 0.9375rem;
   font-weight: 500;
-  letter-spacing: -0.012em; /* the label is large, so the tracking tightens */
+  letter-spacing: -0.012em;
   cursor: pointer;
   overflow: hidden;
   /* Press feedback is instant and lands on pointer-down (motion.js pressable) */
@@ -571,51 +796,38 @@ a.icon-btn {
     box-shadow var(--t-fast), transform var(--t-fast), filter var(--t-fast);
 }
 
-/* The primary action is a flat ink pill — no gradient, no gloss. Its weight
-   comes from contrast against the white field, not from depth. */
+/* The one heavy key: solid ink, taller than anything else that can be
+   pressed, so there is never a question which one copies the page. */
 .primary-btn {
   background: var(--action-color);
   color: var(--action-label);
+}
+
+.action-buttons > .convert-action > .primary-btn,
+.action-buttons > .telegram-action > .primary-btn,
+.chat-action > .primary-btn,
+.multi-tab-actions > .primary-btn {
+  min-height: 3.25rem;
+  font-weight: 600;
 }
 
 .primary-btn:hover {
   background: var(--action-hover);
 }
 
-/* Selection action: a second primary, in the accent blue so it reads as a
-   different kind of copy rather than a competing version of the same one. */
-.selection-btn {
-  background: var(--primary-color);
-  color: var(--primary-label);
-}
-
-.selection-btn:hover {
-  background: var(--primary-hover);
-}
-
-.selection-btn.hidden {
-  display: none !important;
-}
-
-/* Pressed: it sinks — a small scale and a deeper fill. Both start on
-   pointer-down. */
 .primary-btn.is-pressed {
-  transform: scale(0.975);
+  transform: scale(0.98);
   background: var(--action-pressed);
 }
 
-.selection-btn.is-pressed {
-  background: var(--primary-active);
-}
-
 .primary-btn:disabled,
-.secondary-btn:disabled {
+.secondary-btn:disabled,
+.key:disabled {
   opacity: 0.38;
   cursor: not-allowed;
   transform: none;
 }
 
-/* The quieter pill of the pair: pale grey, ink label, no outline. */
 .secondary-btn {
   background: var(--secondary-fill);
   color: var(--text-color);
@@ -651,28 +863,74 @@ a.icon-btn {
   white-space: nowrap;
 }
 
+.convert-action.hidden {
+  display: none !important;
+}
+
+/* Keys ----------------------------------------------------------------- */
+
+/* Equal keys in one row; a key that does not apply here is display:none and
+   the others share its width. */
+.key-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: var(--gap-sm);
+}
+
+.key {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.375rem;
+  min-height: 3.5rem;
+  padding: 0.625rem 0.75rem 0.5625rem;
+  border: none;
+  border-radius: var(--r-md);
+  background: var(--secondary-fill);
+  color: var(--text-color);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--t-fast), transform var(--t-fast);
+}
+
+.key:hover {
+  background: var(--secondary-hover);
+}
+
+.key.is-pressed {
+  transform: scale(0.97);
+  background: var(--fill-secondary);
+}
+
+.key-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+  color: var(--label-secondary);
+}
+
+.key-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+}
+
+/* On a conversation the page copy is one level down, in the chat key's menu:
+   the rendered page is a slice of the thread, not the thread. */
+#mainView[data-mode="chat"] #convertOverrideBtn,
+#mainView[data-mode="telegram"] #convertOverrideBtn {
+  display: none;
+}
+
 /* Chat action ---------------------------------------------------------- */
 
-/* The page-conversion key is hidden on a conversation, so the chat copy takes
-   the ink pill itself — and carries the spectrum underneath it, a soft glow
-   that says "this is the AI conversation" without colouring the label. */
 .chat-action {
   position: relative;
   display: flex;
-  gap: 0;
-  border-radius: var(--r-pill);
-}
-
-.chat-action::before {
-  content: "";
-  position: absolute;
-  inset: 0.5rem 1.25rem -0.25rem;
-  border-radius: var(--r-pill);
-  background: var(--spectrum);
-  filter: blur(12px);
-  opacity: var(--glow-opacity);
-  pointer-events: none;
-  z-index: -1;
+  gap: 2px;
 }
 
 .chat-action.hidden {
@@ -681,53 +939,27 @@ a.icon-btn {
 
 .chat-btn {
   flex: 1;
-  border-top-right-radius: var(--r-sm);
-  border-bottom-right-radius: var(--r-sm);
-  background: var(--action-color);
-  color: var(--action-label);
-}
-
-.chat-btn:hover {
-  background: var(--action-hover);
-}
-
-.chat-btn.is-pressed {
-  background: var(--action-pressed);
+  border-top-right-radius: var(--r-xs);
+  border-bottom-right-radius: var(--r-xs);
 }
 
 /* Caret-only segment: the current count lives in the menu's checkmark, not on
-   the button, so the key stays narrow next to its action. */
+   the key, so it stays narrow next to its action. */
 .chat-limit {
-  width: 2.75rem;
-  min-width: 2.75rem;
-  margin-left: 2px;
+  width: 3rem;
+  min-width: 3rem;
   padding: 0;
-  border-top-right-radius: var(--r-pill);
-  border-bottom-right-radius: var(--r-pill);
-  border-top-left-radius: var(--r-sm);
-  border-bottom-left-radius: var(--r-sm);
-  background: var(--action-color);
-  color: var(--action-label);
-  box-shadow: inset 1px 0 0 var(--action-seam);
+  border-top-left-radius: var(--r-xs);
+  border-bottom-left-radius: var(--r-xs);
 }
 
-.chat-limit:hover {
-  background: var(--action-hover);
-}
-
-.chat-limit.is-pressed {
-  background: var(--action-pressed);
-}
-
-/* The menu drops below its trigger — the action sits at the top of the stack,
-   so opening upward would run into the header. */
+/* The menu drops below its trigger, over the keys. */
 .split-btn-menu.chat-limit-menu {
   top: calc(100% + 0.375rem);
   bottom: auto;
   transform-origin: top right;
 }
 
-/* A hairline between what the menu chooses and what it escapes to. */
 .menu-separator {
   height: 1px;
   margin: 0.25rem 0.375rem;
@@ -748,50 +980,6 @@ a.icon-btn {
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 13 4 4 10-10'/%3E%3C/svg%3E") no-repeat center / contain;
 }
 
-
-/* Split button --------------------------------------------------------- */
-
-.split-btn {
-  position: relative;
-  display: flex;
-  /* One continuous key: the seam is a hairline on the caret, not a gap
-     showing the background through the middle of the control. */
-  gap: 0;
-  border-radius: var(--r-pill);
-}
-
-.split-btn .split-btn-main {
-  flex: 1;
-  border-top-left-radius: var(--r-pill);
-  border-bottom-left-radius: var(--r-pill);
-  border-top-right-radius: var(--r-sm);
-  border-bottom-right-radius: var(--r-sm);
-  /* The label group stays optically centred despite the caret on the right */
-  padding-left: 1.75rem;
-}
-
-.split-btn .split-btn-caret {
-  width: 2.75rem;
-  min-width: 2.75rem;
-  padding: 0;
-  border-top-right-radius: var(--r-pill);
-  border-bottom-right-radius: var(--r-pill);
-  border-top-left-radius: var(--r-sm);
-  border-bottom-left-radius: var(--r-sm);
-  margin-left: 2px;
-  box-shadow: inset 1px 0 0 var(--action-seam);
-}
-
-.split-btn.no-menu .split-btn-caret,
-.split-btn.no-menu .split-btn-menu {
-  display: none;
-}
-
-.split-btn.no-menu .split-btn-main {
-  border-radius: var(--r-pill);
-  padding-left: 1.25rem;
-}
-
 .caret-icon {
   width: 0.875rem;
   height: 0.875rem;
@@ -800,7 +988,6 @@ a.icon-btn {
 
 .split-btn-menu {
   position: absolute;
-  bottom: calc(100% + 0.375rem);
   right: 0;
   z-index: 20;
   min-width: 12rem;
@@ -809,9 +996,6 @@ a.icon-btn {
   background: var(--material-menu);
   border: 1px solid var(--separator);
   box-shadow: var(--shadow-2);
-  /* Scales out of the caret that opened it — the spatial relationship between
-     trigger and content stays obvious. */
-  transform-origin: bottom right;
   will-change: transform, opacity, filter;
 }
 
@@ -824,7 +1008,7 @@ a.icon-btn {
   align-items: center;
   gap: var(--gap-sm);
   width: 100%;
-  /* Compact enough that a six-item picker fits inside the popup */
+  /* Compact enough that a seven-item picker fits inside the popup */
   padding: 0.4375rem 0.625rem;
   border: none;
   border-radius: var(--r-sm);
@@ -845,41 +1029,31 @@ a.icon-btn {
   transform: scale(0.98);
 }
 
-.menu-item-icon {
-  width: 1rem;
-  height: 1rem;
-  flex: none;
-  color: var(--label-secondary);
-}
-
 /* ==========================================================================
    STATUS
    ==========================================================================
-   The outcome is a mark, not a sentence: a check when it worked, a cross when
-   it didn't, a pulse while it runs. The text stays in the DOM for the
-   aria-live region so screen readers still hear the full message.
-   ========================================================================== */
+   A mark and a short line, in Geist Mono, on the card's foot. The same text
+   is the aria-live announcement, so what is read and what is seen agree. */
 
 .status {
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 0;
-  /* Visually hidden, still announced */
-  font-size: 0;
-  line-height: 0;
-  color: var(--label-tertiary);
-}
-
-.status:not(:empty) {
-  margin-top: var(--gap-sm);
-  min-height: 1.375rem;
+  gap: 0.375rem;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.3;
+  color: var(--label-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .status:not(:empty)::before {
   content: "";
-  width: 1.375rem;
-  height: 1.375rem;
+  width: 1rem;
+  height: 1rem;
+  flex: none;
   background-color: currentColor;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
@@ -887,7 +1061,6 @@ a.icon-btn {
   mask-position: center;
   -webkit-mask-size: contain;
   mask-size: contain;
-  /* Neutral dot: "something happened" without claiming success */
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3C/svg%3E");
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3C/svg%3E");
 }
@@ -903,6 +1076,7 @@ a.icon-btn {
 
 .status.error {
   color: var(--error-color);
+  white-space: normal;
 }
 
 .status.error::before {
@@ -910,9 +1084,8 @@ a.icon-btn {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.2M12 16.3v.2'/%3E%3C/svg%3E");
 }
 
-/* Work in progress is AI work, so the spinner is the spectrum. */
 .status.processing {
-  color: var(--primary-color);
+  color: var(--text-color);
 }
 
 .status.processing::before {
@@ -927,28 +1100,23 @@ a.icon-btn {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .status.processing::before {
+  .status.processing::before,
+  .page-card:has(.status.processing)::before {
     animation: none;
-    opacity: 0.7;
   }
 }
 
 /* ==========================================================================
    TOKEN COUNTER
    ==========================================================================
-   Just the number and its unit, set in Geist Mono so the digits read as data
-   rather than as another label. No panel, no meter, no budget — the
-   surrounding surface is the container.
-   ========================================================================== */
+   The number and its unit in Geist Mono, at the right of the card's foot. */
 
 .token-counter {
   display: flex;
   align-items: baseline;
-  justify-content: center;
-  gap: 0.375rem;
-  padding: 0;
-  background: none;
-  border: none;
+  gap: 0.3125rem;
+  flex: none;
+  margin-left: auto;
 }
 
 .token-counter.hidden {
@@ -957,19 +1125,19 @@ a.icon-btn {
 
 .token-value {
   font-family: var(--font-mono);
-  font-size: 1.0625rem;
+  font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.1;
-  letter-spacing: -0.02em; /* the numerals are large, so the tracking tightens */
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   color: var(--text-color);
 }
 
 .token-label {
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 500;
-  letter-spacing: 0.06em; /* small caps open up */
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--label-tertiary);
 }
@@ -1024,6 +1192,34 @@ a.icon-btn {
 }
 
 /* Broad, lightly contrasted cards: a sunken fill and a hairline, no shadow. */
+/* Five sections — Copy, Sites, Research, Interface, About — each a title
+   over the cards it owns, so a setting is found by what it is about rather
+   than by scrolling a flat list in the order the features shipped. */
+.settings-content {
+  gap: var(--gap-xl);
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.settings-section-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-color);
+  padding: 0 0.125rem;
+}
+
+.settings-section-lede {
+  margin-top: -0.25rem;
+  padding: 0 0.125rem 0.125rem;
+  font-size: 0.75rem;
+  color: var(--label-secondary);
+}
+
 .setting-group {
   padding: 0.875rem var(--gap-lg);
   border-radius: var(--r-lg);
@@ -2085,7 +2281,7 @@ input[type="checkbox"] {
     border-top: 1px solid var(--separator);
   }
 
-  .chat-action::before {
+  .page-card::before {
     display: none;
   }
 }
@@ -2119,18 +2315,15 @@ input[type="checkbox"] {
     border: 1px solid var(--border-color);
   }
 
-  .secondary-btn {
+  .secondary-btn,
+  .key,
+  .page-card {
     border: 1px solid var(--border-color);
   }
 
   .research-field,
   .research-track {
     box-shadow: inset 0 0 0 1px var(--border-color);
-  }
-
-  #mainView > .container::before,
-  .chat-action::before {
-    display: none;
   }
 
   /* The mark is the only thing on the row that is not a status, so it needs to
