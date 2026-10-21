@@ -34,7 +34,7 @@
                 <h1 class="brand-name">unshell</h1>
               </div>
               <div class="header-actions">
-                <button id="openSettingsBtn" class="icon-btn" type="button" title="Settings" aria-label="Settings">
+                <button id="openSettingsBtn" class="icon-btn" type="button" aria-label="Settings">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -89,7 +89,7 @@
                     <span class="telegram-dash" aria-hidden="true">–</span>
                     <input type="text" id="telegramDateTo" class="telegram-date-input" inputmode="numeric"
                            placeholder="DD.MM" maxlength="5" aria-label="Copy messages up to this day and month" />
-                    <button id="telegramDateClear" class="telegram-date-clear" type="button" title="Clear both dates" aria-label="Clear both dates">×</button>
+                    <button id="telegramDateClear" class="telegram-date-clear" type="button" aria-label="Clear both dates">×</button>
                   </div>
                 </div>
 
@@ -101,6 +101,20 @@
                   <button class="recipe-chip" type="button" aria-pressed="true" data-setting="includeImages">Images</button>
                   <button class="recipe-chip" type="button" aria-pressed="true" data-setting="preserveTables">Tables</button>
                   <button class="recipe-chip" type="button" aria-pressed="true" data-setting="includeMetadata">Metadata</button>
+                </div>
+
+                <!-- How much of a conversation to copy: one exchange is a
+                     message and its reply. Shown only on a chat. -->
+                <div class="chat-options card-row">
+                  <span class="card-row-label" id="chatLimitLabel">Exchanges</span>
+                  <div id="chatSegments" class="card-segmented" role="radiogroup" aria-labelledby="chatLimitLabel">
+                    <button class="card-segment" type="button" role="radio" aria-checked="false" data-value="1">1</button>
+                    <button class="card-segment" type="button" role="radio" aria-checked="false" data-value="3">3</button>
+                    <button class="card-segment" type="button" role="radio" aria-checked="false" data-value="5">5</button>
+                    <button class="card-segment is-selected" type="button" role="radio" aria-checked="true" data-value="10">10</button>
+                    <button class="card-segment" type="button" role="radio" aria-checked="false" data-value="25">25</button>
+                    <button class="card-segment" type="button" role="radio" aria-checked="false" data-value="all">All</button>
+                  </div>
                 </div>
 
                 <div class="page-receipt">
@@ -117,7 +131,7 @@
               <div id="singleTabActions" class="action-buttons">
                 <!-- Only rendered on an open Telegram conversation. -->
                 <div id="telegramAction" class="telegram-action hidden">
-                  <button id="copyTelegramBtn" class="primary-btn telegram-btn" type="button" title="Copy this Telegram conversation as Markdown">
+                  <button id="copyTelegramBtn" class="primary-btn telegram-btn" type="button">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="btn-icon" aria-hidden="true">
                       <path d="M21.94 4.3 18.9 19.1c-.23 1.02-.84 1.27-1.7.79l-4.7-3.47-2.27 2.18c-.25.25-.46.46-.94.46l.33-4.78 8.7-7.86c.38-.34-.08-.53-.59-.19l-10.75 6.77-4.63-1.45c-1.01-.31-1.03-1 .21-1.49l18.1-6.98c.84-.31 1.57.19 1.28 1.23Z"/>
                     </svg>
@@ -127,35 +141,17 @@
 
                 <!-- Only rendered on pages that hold an LLM conversation -->
                 <div id="chatAction" class="chat-action hidden">
-                  <button id="copyChatBtn" class="primary-btn chat-btn" type="button" title="Copy this conversation as Markdown">
+                  <button id="copyChatBtn" class="primary-btn chat-btn" type="button">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="btn-icon" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 20.25 4.5 21l.75-3.75A8.25 8.25 0 1 1 21 12a8.25 8.25 0 0 1-12.75 8.25Z" />
                       <path stroke-linecap="round" stroke-linejoin="round" d="M8.5 10.5h7M8.5 14h4.5" />
                     </svg>
                     <span class="btn-text">Copy chat</span>
                   </button>
-                  <button id="chatLimitBtn" class="primary-btn chat-limit" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="chatLimitMenu" aria-label="How many exchanges to copy" title="How many exchanges to copy — one exchange is your message plus the reply">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="caret-icon" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                    </svg>
-                  </button>
-                  <div id="chatLimitMenu" class="split-btn-menu chat-limit-menu hidden" role="menu" aria-labelledby="chatLimitBtn">
-                    <button class="split-btn-menu-item" type="button" role="menuitemradio" data-value="1">Last exchange</button>
-                    <button class="split-btn-menu-item" type="button" role="menuitemradio" data-value="3">Last 3 exchanges</button>
-                    <button class="split-btn-menu-item" type="button" role="menuitemradio" data-value="5">Last 5 exchanges</button>
-                    <button class="split-btn-menu-item" type="button" role="menuitemradio" data-value="10">Last 10 exchanges</button>
-                    <button class="split-btn-menu-item" type="button" role="menuitemradio" data-value="25">Last 25 exchanges</button>
-                    <button class="split-btn-menu-item" type="button" role="menuitemradio" data-value="all">Whole chat</button>
-                    <!-- The page itself is still reachable, one level down: on a
-                         chat it captures only what is rendered, which is why it
-                         is not the front-of-house action here. -->
-                    <div class="menu-separator" role="separator"></div>
-                    <button id="chatPageFallbackBtn" class="split-btn-menu-item" type="button" role="menuitem">Copy the page instead</button>
-                  </div>
                 </div>
 
                 <div id="convertSplit" class="convert-action">
-                  <button id="convertBtn" class="primary-btn" type="button" title="Convert this page to Markdown and copy it to the clipboard">
+                  <button id="convertBtn" class="primary-btn" type="button">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="btn-icon" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
                     </svg>
@@ -164,7 +160,7 @@
                 </div>
 
                 <div class="key-row">
-                  <button id="downloadBtn" class="key" type="button" title="Convert this page to Markdown and download it as a file">
+                  <button id="downloadBtn" class="key" type="button">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="key-icon" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                     </svg>
@@ -176,8 +172,18 @@
                     </svg>
                     <span class="key-label override-label">Full page</span>
                   </button>
+                  <!-- Only on a conversation: the rendered page, for when the
+                       chat detection is wrong or the page is what is wanted.
+                       It captures only what is on screen, so it is a key, not
+                       the lead. -->
+                  <button id="chatPageFallbackBtn" class="key" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="key-icon" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.5h16.5v15H3.75zM3.75 9h16.5M9 9v10.5" />
+                    </svg>
+                    <span class="key-label">Copy page</span>
+                  </button>
                   <!-- Only rendered when the page actually has a selection -->
-                  <button id="copySelectionBtn" class="key hidden" type="button" title="Copy the highlighted fragment with its source and line range">
+                  <button id="copySelectionBtn" class="key hidden" type="button">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="key-icon" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 6.75h15M4.5 12h9M4.5 17.25h6" />
                     </svg>
@@ -189,20 +195,20 @@
               <!-- Multi-tab actions (hidden by default). The card above lists
                    the tabs; the count is its mode label. -->
               <div id="multiTabActions" class="multi-tab-actions hidden">
-                <button id="copyAllBtn" class="primary-btn" type="button" title="Merge all selected tabs and copy to clipboard">
+                <button id="copyAllBtn" class="primary-btn" type="button">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="btn-icon" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
                   </svg>
                   <span class="btn-text">Copy <span id="selectedTabCount">0</span> tabs</span>
                 </button>
                 <div class="key-row">
-                  <button id="downloadMergedBtn" class="key" type="button" title="Merge all selected tabs and download as a single file">
+                  <button id="downloadMergedBtn" class="key" type="button">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="key-icon" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                     </svg>
                     <span class="key-label">Save merged</span>
                   </button>
-                  <button id="downloadZipBtn" class="key" type="button" title="Download each tab as a separate file in a ZIP archive">
+                  <button id="downloadZipBtn" class="key" type="button">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="key-icon" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
                     </svg>
@@ -299,7 +305,7 @@
               <div class="result-body">
                 <span id="researchFile" class="result-file"></span>
                 <div class="result-meta">
-                  <span id="researchTokens" class="token-value" title="Estimated with the o200k_base encoding">~0</span>
+                  <span id="researchTokens" class="token-value">~0</span>
                   <span class="token-label">tokens</span>
                   <span id="researchSourcesMeta" class="result-sources"></span>
                 </div>
@@ -333,7 +339,7 @@
       <div id="settingsView" class="view" aria-hidden="true">
         <div class="container">
           <header class="header">
-            <button id="backToMainBtn" class="icon-btn" title="Back">
+            <button id="backToMainBtn" class="icon-btn" type="button" aria-label="Back">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -560,18 +566,18 @@ Source: [{title}]({url})</textarea>
                 <div class="setting-row">
                   <span class="setting-label">Theme</span>
                   <div class="theme-switcher">
-                    <button id="autoThemeBtn" class="theme-btn active" type="button" title="Follow the browser" aria-label="Follow the browser">
+                    <button id="autoThemeBtn" class="theme-btn active" type="button" aria-label="Follow the browser">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="theme-icon-small" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 0v18" />
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 3a9 9 0 0 1 0 18" fill="currentColor" stroke="none" opacity="0.35" />
                       </svg>
                     </button>
-                    <button id="lightThemeBtn" class="theme-btn" type="button" title="Light" aria-label="Light">
+                    <button id="lightThemeBtn" class="theme-btn" type="button" aria-label="Light">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="theme-icon-small" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
                       </svg>
                     </button>
-                    <button id="darkThemeBtn" class="theme-btn" type="button" title="Dark" aria-label="Dark">
+                    <button id="darkThemeBtn" class="theme-btn" type="button" aria-label="Dark">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="theme-icon-small" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
                       </svg>

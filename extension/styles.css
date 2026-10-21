@@ -481,11 +481,8 @@ a.icon-btn {
   flex-direction: column;
   padding: var(--gap-lg) var(--edge) var(--gap-md);
   min-height: 0;
-  /* Must stay visible: the chat-limit menu drops out of this box, and a clip
-     (or a mask, which is also a stacking context) would slice it off. */
   position: relative;
   z-index: 4;
-  overflow: visible;
 }
 
 .bottom-spacer {
@@ -698,8 +695,25 @@ a.icon-btn {
   border-radius: 0;
 }
 
-#mainView:not([data-mode="telegram"]) .telegram-options {
+#mainView:not([data-mode="telegram"]) .telegram-options,
+#mainView:not([data-mode="chat"]) .chat-options {
   display: none;
+}
+
+/* On a chat the card has the exchange limit to hold as well, in the same
+   height: the title keeps one line, and the recipe — which a conversation
+   copy hardly uses — steps away. */
+#mainView[data-mode="chat"] .page-title {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+
+#mainView[data-mode="chat"] .page-recipe {
+  display: none;
+}
+
+.page-card .chat-options {
+  flex: none;
 }
 
 /* Recipe chips: what the Markdown keeps. On is a filled chip in the label
@@ -951,7 +965,6 @@ a.icon-btn {
 .chat-action {
   position: relative;
   display: flex;
-  gap: 2px;
 }
 
 .chat-action.hidden {
@@ -960,94 +973,11 @@ a.icon-btn {
 
 .chat-btn {
   flex: 1;
-  border-top-right-radius: var(--r-xs);
-  border-bottom-right-radius: var(--r-xs);
 }
 
-/* Caret-only segment: the current count lives in the menu's checkmark, not on
-   the key, so it stays narrow next to its action. */
-.chat-limit {
-  width: 3rem;
-  min-width: 3rem;
-  padding: 0;
-  border-top-left-radius: var(--r-xs);
-  border-bottom-left-radius: var(--r-xs);
-}
-
-/* The menu drops below its trigger, over the keys. */
-.split-btn-menu.chat-limit-menu {
-  top: calc(100% + 0.375rem);
-  bottom: auto;
-  transform-origin: top right;
-}
-
-.menu-separator {
-  height: 1px;
-  margin: 0.25rem 0.375rem;
-  background: var(--separator);
-}
-
-.split-btn-menu-item.is-selected {
-  font-weight: 600;
-}
-
-.split-btn-menu-item.is-selected::after {
-  content: "";
-  width: 0.75rem;
-  height: 0.75rem;
-  margin-left: auto;
-  background-color: var(--text-color);
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 13 4 4 10-10'/%3E%3C/svg%3E") no-repeat center / contain;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 13 4 4 10-10'/%3E%3C/svg%3E") no-repeat center / contain;
-}
-
-.caret-icon {
-  width: 0.875rem;
-  height: 0.875rem;
-  /* Rotation is spring-driven from JS; no transition here on purpose */
-}
-
-.split-btn-menu {
-  position: absolute;
-  right: 0;
-  z-index: 20;
-  min-width: 12rem;
-  padding: var(--gap-xs);
-  border-radius: var(--r-md);
-  background: var(--material-menu);
-  border: 1px solid var(--separator);
-  box-shadow: var(--shadow-2);
-  will-change: transform, opacity, filter;
-}
-
-.split-btn-menu.hidden {
-  display: none !important;
-}
-
-.split-btn-menu-item {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-sm);
-  width: 100%;
-  /* Compact enough that a seven-item picker fits inside the popup */
-  padding: 0.4375rem 0.625rem;
-  border: none;
-  border-radius: var(--r-sm);
-  background: transparent;
-  font-size: 0.8125rem;
-  font-weight: 450;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color var(--t-fast), transform var(--t-fast);
-}
-
-.split-btn-menu-item:hover {
-  background: var(--fill-tertiary);
-}
-
-.split-btn-menu-item.is-pressed {
-  background: var(--fill-secondary);
-  transform: scale(0.98);
+/* The page copy on a conversation is a key of its own, and only there. */
+#mainView:not([data-mode="chat"]) #chatPageFallbackBtn {
+  display: none;
 }
 
 /* ==========================================================================
@@ -2401,7 +2331,8 @@ input.switch.switch-sm:checked {
   .theme-btn.is-pressed,
   .segment-btn.is-pressed,
   .reset-btn.is-pressed,
-  .split-btn-menu-item.is-pressed {
+  .key.is-pressed,
+  .recipe-chip.is-pressed {
     transform: none;
     filter: brightness(0.94);
   }
@@ -2438,8 +2369,7 @@ input.switch.switch-sm:checked {
 
 /* Fully solid: drop the last of the blur and the soft glow. */
 @media (prefers-reduced-transparency: reduce) {
-  .header,
-  .split-btn-menu {
+  .header {
     background: var(--surface-color);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
@@ -2491,7 +2421,6 @@ input.switch.switch-sm:checked {
   }
 
   .header,
-  .split-btn-menu,
   .settings-list,
   .research-sheet,
   .research-bar,
@@ -2571,13 +2500,15 @@ input.switch.switch-sm:checked {
   border: 1px solid var(--separator);
 }
 
-.telegram-row {
+.telegram-row,
+.card-row {
   display: flex;
   align-items: center;
   gap: var(--gap-sm);
 }
 
-.telegram-row-label {
+.telegram-row-label,
+.card-row-label {
   flex: none;
   width: 4.5rem;
   font-family: var(--font-mono);
@@ -2588,7 +2519,8 @@ input.switch.switch-sm:checked {
   color: var(--label-tertiary);
 }
 
-.telegram-segmented {
+.telegram-segmented,
+.card-segmented {
   position: relative;
   display: flex;
   flex: 1;
@@ -2598,7 +2530,8 @@ input.switch.switch-sm:checked {
   background: var(--fill-tertiary);
 }
 
-.telegram-segment {
+.telegram-segment,
+.card-segment {
   flex: 1;
   padding: 0.25rem 0;
   border: none;
@@ -2612,7 +2545,8 @@ input.switch.switch-sm:checked {
   transition: background-color var(--t-fast), color var(--t-fast);
 }
 
-.telegram-segment.is-selected {
+.telegram-segment.is-selected,
+.card-segment.is-selected {
   background: var(--surface-raised);
   color: var(--label-primary);
   box-shadow: 0 0 0 1px var(--separator), var(--shadow-1);
@@ -2674,7 +2608,7 @@ button svg,
 button img,
 .theme-btn .theme-icon-small,
 .btn-icon,
-.caret-icon,
+.key-icon,
 .theme-icon-small {
   pointer-events: none;
 }

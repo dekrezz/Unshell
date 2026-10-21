@@ -123,8 +123,7 @@ const telegramDateClearBtn = document.getElementById("telegramDateClear");
 const aboutVersionEl = document.getElementById("aboutVersion");
 const aboutBuildEl = document.getElementById("aboutBuild");
 const copyChatBtn = document.getElementById("copyChatBtn");
-const chatLimitBtn = document.getElementById("chatLimitBtn");
-const chatLimitMenu = document.getElementById("chatLimitMenu");
+const chatSegments = document.getElementById("chatSegments");
 const chatPageFallbackBtn = document.getElementById("chatPageFallbackBtn");
 let chatExchangeLimitValue = "10";
 const downloadBtn = document.getElementById("downloadBtn");
@@ -482,46 +481,15 @@ async function initSelectionAction() {
 // key is hidden and Download follows the chat, not the rendered slice.
 let chatPageFallback = false;
 
-// Chat exchange picker. A native <select> renders as the OS control — wrong
-// arrow, wrong focus ring, wrong colours inside a dark key — so the segment is
-// a caret button with the same materialising menu as the convert split button.
-const chatLimitSpring = new Motion.Spring(0, {
-  damping: Motion.PRESETS.snappy.damping,
-  response: Motion.PRESETS.snappy.response,
-  onUpdate: (value) => {
-    const eased = Motion.clamp(value, 0, 1.05);
-    chatLimitMenu.style.transform =
-      `translate3d(0, ${(1 - eased) * -6}px, 0) scale(${0.9 + eased * 0.1})`;
-    chatLimitMenu.style.opacity = String(Motion.clamp(eased * 1.4, 0, 1));
-    chatLimitMenu.style.filter = eased > 0.99 ? "none" : `blur(${(1 - eased) * 6}px)`;
-  },
-  onRest: (spring) => {
-    if (spring.value <= 0.001) chatLimitMenu.classList.add("hidden");
-  }
-});
-
-function isChatLimitMenuOpen() {
-  return !chatLimitMenu.classList.contains("hidden") && chatLimitSpring.target > 0.5;
-}
-
-function openChatLimitMenu() {
-  chatLimitMenu.classList.remove("hidden");
-  chatLimitBtn.setAttribute("aria-expanded", "true");
-  chatLimitSpring.to(1, Motion.PRESETS.snappy);
-}
-
-function closeChatLimitMenu() {
-  chatLimitBtn.setAttribute("aria-expanded", "false");
-  if (chatLimitMenu.classList.contains("hidden")) return;
-  chatLimitSpring.to(0, Motion.PRESETS.snappy);
-}
-
+// How many exchanges a chat copy takes, as segments on the page card: the
+// menu it used to be had more items than the popup had room for below the
+// key, and ran under the research bar.
 function setChatExchangeLimit(value, options) {
   chatExchangeLimitValue = value;
-  chatLimitMenu.querySelectorAll(".split-btn-menu-item").forEach((item) => {
-    const selected = item.dataset.value === value;
-    item.classList.toggle("is-selected", selected);
-    item.setAttribute("aria-checked", selected ? "true" : "false");
+  chatSegments.querySelectorAll(".card-segment").forEach((segment) => {
+    const selected = segment.dataset.value === value;
+    segment.classList.toggle("is-selected", selected);
+    segment.setAttribute("aria-checked", selected ? "true" : "false");
   });
   if (!options || options.persist !== false) saveSettings();
 }
@@ -722,7 +690,6 @@ async function initTelegramAction() {
     if (!info || !info.isTelegram) return;
 
     telegramBtnText.textContent = telegramButtonLabel(info);
-    copyTelegramBtn.title = `Copy this Telegram ${info.kind === "private" ? "chat" : info.kind} as Markdown`;
     telegramAction.classList.remove("hidden");
     setPageMode("telegram", "Telegram");
     convertSplit.classList.add("hidden");
@@ -756,7 +723,6 @@ function renderPage(tab) {
   pageGlyph.textContent = (host || url || "·").charAt(0).toUpperCase();
   const title = (tab.title || "").trim();
   pageTitle.textContent = title || host || "This page";
-  pageTitle.title = title;
   renderPageIcon(tab);
 }
 
@@ -799,7 +765,6 @@ function renderPageTabs(tabs) {
   pageGlyph.textContent = String(tabs.length);
   pageHost.textContent = "selected tabs";
   pageTitle.textContent = `${tabs.length} tabs, merged into one document`;
-  pageTitle.title = "";
   const items = tabs.slice(0, PAGE_TABS_SHOWN).map((tab) => {
     const item = document.createElement("li");
     item.textContent = (tab.title || "").trim() || hostOf(tab.url || "") || tab.url || "Untitled tab";
@@ -1481,12 +1446,10 @@ function updateConvertSplitVisibility() {
   if (scope === "mainContent") {
     convertOverrideBtn.classList.remove("hidden");
     convertOverrideLabel.textContent = "Full page";
-    convertOverrideBtn.title = "Override the Main-content-only setting and copy the full page this once";
     convertOverrideBtn.dataset.scope = "fullPage";
   } else if (scope === "fullPage") {
     convertOverrideBtn.classList.remove("hidden");
     convertOverrideLabel.textContent = "Main content";
-    convertOverrideBtn.title = "Override the Full-page setting and copy main content only this once";
     convertOverrideBtn.dataset.scope = "mainContent";
   } else {
     convertOverrideBtn.classList.add("hidden");
@@ -1513,7 +1476,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Feedback on pointer-down, gestures available from the first frame.
   safely("press feedback", () => Motion.pressable(
     document,
-    "button, a.icon-btn, .setting-option, .split-btn-menu-item"
+    "button, a.icon-btn, .setting-option"
   ));
   safely("nav gestures", initNavGestures);
   safely("nav", () => renderNav(0));
@@ -1562,25 +1525,9 @@ document.addEventListener("DOMContentLoaded", () => {
     telegramDateToInput.value = "";
     saveSettings();
   });
-  chatPageFallbackBtn.addEventListener("click", () => {
-    closeChatLimitMenu();
-    convertToMarkdown();
-  });
-  chatLimitBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (isChatLimitMenuOpen()) {
-      closeChatLimitMenu();
-    } else {
-      openChatLimitMenu();
-    }
-  });
-
-  chatLimitMenu.querySelectorAll(".split-btn-menu-item").forEach((item) => {
-    item.addEventListener("click", () => {
-      setChatExchangeLimit(item.dataset.value);
-      closeChatLimitMenu();
-      chatLimitBtn.focus();
-    });
+  chatPageFallbackBtn.addEventListener("click", () => convertToMarkdown());
+  chatSegments.querySelectorAll(".card-segment").forEach((segment) => {
+    segment.addEventListener("click", () => setChatExchangeLimit(segment.dataset.value));
   });
   downloadBtn.addEventListener("click", downloadMarkdown);
 
@@ -1592,19 +1539,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   convertOverrideBtn.addEventListener("click", () => {
     convertToMarkdown(convertOverrideBtn.dataset.scope || "fullPage");
-  });
-
-  document.addEventListener("click", (e) => {
-    if (isChatLimitMenuOpen() && !chatAction.contains(e.target)) {
-      closeChatLimitMenu();
-    }
-  });
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && isChatLimitMenuOpen()) {
-      closeChatLimitMenu();
-      chatLimitBtn.focus();
-    }
   });
 
   // Multi-tab button clicks
@@ -2928,7 +2862,6 @@ function initResearch() {
 
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    if (isChatLimitMenuOpen()) return;
     // Escape dismisses the sheet and nothing else, running or not. Pushing the
     // sheet away with a drag leaves the run alive and the bar counting, so the
     // keyboard form of the same gesture must not instead destroy four minutes
