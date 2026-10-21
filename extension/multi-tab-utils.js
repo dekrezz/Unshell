@@ -202,7 +202,7 @@ const MultiTabUtils = (function() {
     }
 
     const blob = await zip.generateAsync({ type: 'blob' });
-    const zipFilename = `scrapllm-export-${getDateString()}-${successCount}tabs.zip`;
+    const zipFilename = `unshell-export-${getDateString()}-${successCount}tabs.zip`;
 
     return { blob, filename: zipFilename, successCount };
   }

@@ -279,7 +279,7 @@
     if (filename.length > MAX_FILENAME_LENGTH) {
       filename = filename.substring(0, MAX_FILENAME_LENGTH).replace(/_+$/g, '');
     }
-    if (!filename) filename = 'scrapllm';
+    if (!filename) filename = 'unshell';
     
     const blob = new Blob([markdown], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);

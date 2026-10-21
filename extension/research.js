@@ -1242,7 +1242,7 @@ var ScrapLLMResearch = typeof ScrapLLMResearch !== 'undefined' ? ScrapLLMResearc
 
   function buildFilename(query) {
     const slug = MultiTabUtils.sanitizeFilename(query).slice(0, QUERY_SLUG_MAX) || query;
-    return `scrapllm-research-${slug}-${MultiTabUtils.getDateString()}.md`;
+    return `unshell-research-${slug}-${MultiTabUtils.getDateString()}.md`;
   }
 
   function buildDocument(run, results) {

@@ -481,7 +481,7 @@ async function handleMultiTabCommand(command, tabs) {
     } else if (command === "download_markdown") {
       // Download Merged: Single .md file
       const merged = MultiTabUtils.mergeMarkdownResults(results);
-      const filename = `scrapllm-merged-${MultiTabUtils.getDateString()}.md`;
+      const filename = `unshell-merged-${MultiTabUtils.getDateString()}.md`;
 
       // Trigger download via active tab
       const activeTabs = await browserAPI.tabs.query({ active: true, currentWindow: true });
@@ -592,7 +592,7 @@ async function handleKeyboardShortcut(command) {
 
           if (command === "download_markdown") {
             // Download as file
-            const pageTitle = activeTab.title || "scrapllm";
+            const pageTitle = activeTab.title || "unshell";
             await browserAPI.tabs.sendMessage(activeTab.id, {
               action: "downloadMarkdown",
               markdown: response.markdown,

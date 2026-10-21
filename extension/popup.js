@@ -1,4 +1,4 @@
-// ScrapLLM Popup Script
+// Unshell Popup Script
 const MAX_FILENAME_LENGTH = 100;
 
 // Create a proper browserAPI wrapper for the popup
@@ -1178,7 +1178,7 @@ async function copyAllTabs() {
 async function downloadMergedFile() {
   await processMultiTabAction(async (results) => {
     const merged = MultiTabUtils.mergeMarkdownResults(results);
-    const filename = `scrapllm-merged-${MultiTabUtils.getDateString()}`;
+    const filename = `unshell-merged-${MultiTabUtils.getDateString()}`;
     downloadMarkdownFile(filename, merged);
     return { suffix: " downloaded" };
   });
@@ -1479,10 +1479,10 @@ function safely(label, run) {
   try {
     const result = run();
     if (result && typeof result.catch === "function") {
-      result.catch((error) => console.error(`ScrapLLM: ${label} failed`, error));
+      result.catch((error) => console.error(`Unshell: ${label} failed`, error));
     }
   } catch (error) {
-    console.error(`ScrapLLM: ${label} failed`, error);
+    console.error(`Unshell: ${label} failed`, error);
   }
 }
 
@@ -2922,7 +2922,7 @@ function initResearch() {
 }
 
 async function generateFileNameFromPageTitle() {
-  let baseFilename = "scrapllm"; // Default filename
+  let baseFilename = "unshell"; // Default filename
   try {
     const tabs = await browserAPI.tabs.query({
       active: true,
