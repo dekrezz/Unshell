@@ -50,12 +50,16 @@
                    the Telegram limits live here because they choose *which
                    part* of it, and the outcome of a copy lands on its foot. -->
               <section id="pageCard" class="page-card" aria-labelledby="pageTitle">
-                <div class="page-meta">
+                <!-- The current-page lockup: the site's icon, then its title over
+                     its address. No badge for the kind of page — the key below
+                     already says "Copy chat" or names the Telegram chat. -->
+                <div class="page-head">
                   <span id="pageGlyph" class="page-glyph" aria-hidden="true"></span>
-                  <span id="pageHost" class="page-host"></span>
-                  <span id="pageMode" class="page-mode">Page</span>
+                  <div class="page-heading">
+                    <p id="pageTitle" class="page-title">This page</p>
+                    <span id="pageHost" class="page-host"></span>
+                  </div>
                 </div>
-                <p id="pageTitle" class="page-title">This page</p>
                 <ol id="pageTabs" class="page-tabs hidden" aria-label="Selected tabs"></ol>
 
                 <div class="telegram-options">

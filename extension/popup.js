@@ -104,7 +104,6 @@ const convertBtn = document.getElementById("convertBtn");
 const convertSplit = document.getElementById("convertSplit");
 const pageGlyph = document.getElementById("pageGlyph");
 const pageHost = document.getElementById("pageHost");
-const pageMode = document.getElementById("pageMode");
 const pageTitle = document.getElementById("pageTitle");
 const pageTabs = document.getElementById("pageTabs");
 const convertOverrideBtn = document.getElementById("convertOverrideBtn");
@@ -435,7 +434,7 @@ async function initChatAction() {
     if (!info || !info.isChat) return;
 
     chatAction.classList.remove("hidden");
-    setPageMode("chat", info.label ? `Chat · ${info.label}` : "Chat");
+    setPageMode("chat");
 
     // A chat transcript is virtualised: converting the page captures whichever
     // messages happen to be rendered, which is a slice of the middle dressed up
@@ -620,7 +619,7 @@ async function initTelegramAction() {
 
     telegramBtnText.textContent = telegramButtonLabel(info);
     telegramAction.classList.remove("hidden");
-    setPageMode("telegram", "Telegram");
+    setPageMode("telegram");
     convertSplit.classList.add("hidden");
     chatPageFallback = true;
   } catch (error) {
@@ -632,9 +631,21 @@ async function initTelegramAction() {
 // title, and the mode that decides which action leads. It is filled from the
 // tab the popup opened on; a page the browser keeps to itself (about:, the
 // store) keeps the card's own "This page" rather than a guess.
-function setPageMode(mode, label) {
+function setPageMode(mode) {
   mainView.dataset.mode = mode;
-  pageMode.textContent = label;
+}
+
+// The address under the title: host and path, without the scheme or "www.",
+// so a chat or a document reads as where it is, not only which site.
+function displayAddress(url) {
+  try {
+    const parsed = new URL(url);
+    if (!/^https?:$/.test(parsed.protocol)) return url;
+    const path = parsed.pathname === "/" ? "" : parsed.pathname;
+    return parsed.hostname.replace(/^www\./, "") + path;
+  } catch (error) {
+    return url;
+  }
 }
 
 function hostOf(url) {
@@ -648,7 +659,7 @@ function hostOf(url) {
 function renderPage(tab) {
   const url = tab.url || "";
   const host = hostOf(url);
-  pageHost.textContent = host || url;
+  pageHost.textContent = displayAddress(url);
   pageGlyph.textContent = (host || url || "·").charAt(0).toUpperCase();
   const title = (tab.title || "").trim();
   pageTitle.textContent = title || host || "This page";
@@ -712,7 +723,7 @@ const PAGE_TABS_SHOWN = 4;
 function renderPageTabs(tabs) {
   pageGlyph.classList.remove("has-icon");
   pageGlyph.textContent = String(tabs.length);
-  pageHost.textContent = "selected tabs";
+  pageHost.textContent = `${tabs.length} tabs, merged into one document`;
   pageTitle.textContent = `${tabs.length} tabs, merged into one document`;
   const items = tabs.slice(0, PAGE_TABS_SHOWN).map((tab) => {
     const item = document.createElement("li");
@@ -973,7 +984,7 @@ async function detectSelectedTabsAndUpdateUI() {
     if (validTabs.length > 1) {
       // Multi-tab mode - switch to multi-tab UI
       showMultiTabUI(validTabs.length);
-      setPageMode("multi", `${validTabs.length} tabs`);
+      setPageMode("multi");
       renderPageTabs(validTabs);
       return validTabs;
     } else {

@@ -532,34 +532,50 @@ a.icon-btn {
   overflow: hidden;
 }
 
-.page-meta,
+.page-head,
 .page-recipe,
 .page-receipt,
 .page-card .telegram-options {
   flex: none;
 }
 
-.page-meta {
+/* The current-page lockup: the site's icon on its tile, then the title over
+   the address. */
+.page-head {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: flex-start;
+  gap: 0.75rem;
   min-width: 0;
 }
 
-/* The host's initial on an ink tile: the one solid shape in the card, so the
-   eye finds the subject before it reads it. */
+/* With no title shown (Telegram, merged tabs) the address is the whole
+   heading, so it sits on the icon's centre line. */
+#mainView[data-mode="telegram"] .page-head,
+#mainView[data-mode="multi"] .page-head {
+  align-items: center;
+}
+
+.page-heading {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* The host's initial on an ink tile until the site's icon arrives. */
 .page-glyph {
-  width: 1.625rem;
-  height: 1.625rem;
+  width: 2.25rem;
+  height: 2.25rem;
   flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--r-sm);
+  border-radius: 0.625rem;
   background: var(--action-color);
   color: var(--action-label);
   font-family: var(--font-mono);
-  font-size: 0.8125rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   line-height: 1;
 }
@@ -568,59 +584,40 @@ a.icon-btn {
   content: "·";
 }
 
-/* The site's own icon, on a white tile in both themes: favicons are drawn for
-   a light tab strip, and a dark one disappears on the ink tile. */
+/* The icon's tile follows the browser's colour scheme, not the popup's theme:
+   the browser picks the icon variant for its own tab strip (a white logo for a
+   dark strip), so the tile has to be the strip's colour for that variant to
+   show. On a white tile a white logo was simply not there. */
 .page-glyph.has-icon {
   background: #ffffff;
   box-shadow: inset 0 0 0 1px rgba(18, 19, 23, 0.1);
 }
 
+@media (prefers-color-scheme: dark) {
+  .page-glyph.has-icon {
+    background: #2b2d33;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  }
+}
+
 .page-glyph img {
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 1.25rem;
+  height: 1.25rem;
   object-fit: contain;
 }
 
 .page-host {
-  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.71875rem;
   color: var(--label-secondary);
-}
-
-.page-mode {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.1875rem 0.5rem;
-  border-radius: var(--r-pill);
-  background: var(--fill-secondary);
-  color: var(--label-secondary);
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-/* A conversation is AI work, and the spectrum is reserved for AI work: one
-   dot of it, on the label that says so. */
-#mainView[data-mode="chat"] .page-mode::before {
-  content: "";
-  width: 0.4375rem;
-  height: 0.4375rem;
-  border-radius: 50%;
-  background: var(--spectrum-conic);
 }
 
 .page-title {
-  font-size: 1.0625rem;
+  font-size: 1rem;
   font-weight: 600;
   line-height: 1.3;
   letter-spacing: -0.02em;
@@ -631,7 +628,6 @@ a.icon-btn {
   line-clamp: 2;
   overflow: hidden;
   overflow-wrap: anywhere;
-  flex: none;
 }
 
 /* On Telegram the key already names the conversation, and on merged tabs the
@@ -697,16 +693,11 @@ a.icon-btn {
   display: none;
 }
 
-/* On a chat the card has the exchange limit to hold as well, in the same
-   height: the title keeps one line, and the recipe — which a conversation
-   copy hardly uses — steps away. */
+/* On a chat the card holds the exchange limit as well, in the same height,
+   so the title keeps one line. */
 #mainView[data-mode="chat"] .page-title {
   -webkit-line-clamp: 1;
   line-clamp: 1;
-}
-
-#mainView[data-mode="chat"] .page-recipe {
-  display: none;
 }
 
 .page-card .chat-options {
