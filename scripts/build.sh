@@ -198,16 +198,10 @@ build_firefox() {
     # convert-core.js load there and fetched research pages are parsed in
     # place. There is no offscreen API in Firefox, and none is needed, so the
     # "offscreen" permission is stripped rather than shipped as a warning.
+    # browser_specific_settings (the add-on ID, the minimum version, the data
+    # collection declaration) is kept from extension/manifest.json as it is:
+    # declared once, so the package cannot carry an ID the source does not.
     jq '
-    .browser_specific_settings = {
-      "gecko": {
-        "id": "scrapllm@dekrezz.github.io",
-        "strict_min_version": "109.0",
-        "data_collection_permissions": {
-          "required": ["searchTerms"]
-        }
-      }
-    } |
     .permissions = (.permissions - ["offscreen"]) |
     if has("background") then
       .background = {
