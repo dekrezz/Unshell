@@ -50,6 +50,37 @@ jobs:
         fi
         echo "All build artifacts created successfully"
 
+    # build.sh copies every file by name, three times over. A file added to
+    # extension/ and missed in one list builds fine and ships without it.
+    - name: Verify packages contain every extension file
+      run: |
+        VERSION=$(jq -r '.version' extension/manifest.json)
+        missing=0
+        # The source package is the extension as written: every file in it.
+        listing=$(unzip -Z1 "dist/ScrapLLM-Source-v${VERSION}.zip")
+        while IFS= read -r file; do
+          rel="${file#extension/}"
+          if ! grep -qxF "$rel" <<<"$listing"; then
+            echo "::error::Source package is missing $rel"
+            missing=1
+          fi
+        done < <(find extension -type f ! -name '.*' | sort)
+        # A browser package carries every script, page and stylesheet. Firefox
+        # has no offscreen document; that page is Chrome's MV3 workaround.
+        for target in Chrome Firefox; do
+          listing=$(unzip -Z1 "dist/ScrapLLM-${target}-v${VERSION}.zip")
+          for file in extension/*.js extension/*.html extension/*.css; do
+            name="${file#extension/}"
+            if [ "$target" = Firefox ] && [[ "$name" == offscreen.* ]]; then continue; fi
+            if ! grep -qxF "$name" <<<"$listing"; then
+              echo "::error::${target} package is missing $name"
+              missing=1
+            fi
+          done
+        done
+        if [ "$missing" -ne 0 ]; then exit 1; fi
+        echo "Every extension file is in its packages"
+
     - name: Validate Chrome manifest
       run: |
         echo "Validating Chrome manifest.json..."
