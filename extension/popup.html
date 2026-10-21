@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Unshell</title>
+    <!-- Geist ships with the extension; preloading it lets styles.css use
+         font-display: block without the popup ever painting blank text. -->
+    <link rel="preload" href="assets/fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="assets/fonts/GeistMono-Variable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="light-theme">
+    <div class="popup-wrapper">
+      <!-- Main View -->
+      <div id="mainView" class="view active" aria-hidden="false" data-mode="page" data-chat-range="days" data-chat-card="off">
+        <div class="container">
+          <div class="top-section">
+            <header class="header">
+              <div class="brand">
+                <!-- The mark: a shell opened at the corner, its kernel showing. -->
+                <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <defs>
+                    <linearGradient id="brandSpectrum" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0" stop-color="#4285f4" />
+                      <stop offset="0.4" stop-color="#7b61ff" />
+                      <stop offset="0.72" stop-color="#ea4335" />
+                      <stop offset="1" stop-color="#fbbc04" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M16.88 5.04A8.5 8.5 0 1 0 20.5 12" fill="none" stroke="url(#brandSpectrum)" stroke-width="3.2" stroke-linecap="round" />
+                  <circle cx="12" cy="12" r="2.7" fill="currentColor" />
+                </svg>
+                <h1 class="brand-name">unshell</h1>
+              </div>
+              <div class="header-actions">
+                <button id="openSettingsBtn" class="icon-btn" type="button" aria-label="Settings">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="icon" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                  </svg>
+                </button>
+              </div>
+            </header>
+          </div>
+          <div class="center-section">
+            <div class="main-controls">
+              <!-- What is about to be copied. The page is the subject of every
+                   action below it, so it is the largest thing in the popup;
+                   the Telegram limits live here because they choose *which
+                   part* of it, and the outcome of a copy lands on its foot. -->
+              <section id="pageCard" class="page-card" aria-labelledby="pageTitle">
+                <!-- The current-page lockup: the site's icon, then its title over
+                     its address. No badge for the kind of page — the key below
+                     already says "Copy chat" or names the Telegram chat. -->
+                <div class="page-head">
+                  <span id="pageGlyph" class="page-glyph" aria-hidden="true"></span>
+                  <div class="page-heading">
+                    <p id="pageTitle" class="page-title">This page</p>
+                    <span id="pageHost" class="page-host"></span>
+                  </div>
+                </div>
+                <ol id="pageTabs" class="page-tabs hidden" aria-label="Selected tabs"></ol>
+
+                <div class="telegram-options">
+                  <div class="telegram-row">
+                    <span class="telegram-row-label">Messages</span>
+                    <div id="telegramSegments" class="telegram-segmented" role="radiogroup" aria-label="How many messages to copy">
+                      <button class="telegram-segment" type="button" role="radio" aria-checked="false" data-value="10">10</button>
+                      <button class="telegram-segment" type="button" role="radio" aria-checked="false" data-value="25">25</button>
+                      <button class="telegram-segment is-selected" type="button" role="radio" aria-checked="true" data-value="50">50</button>
+                      <button class="telegram-segment" type="button" role="radio" aria-checked="false" data-value="100">100</button>
+                      <button class="telegram-segment" type="button" role="radio" aria-checked="false" data-value="250">250</button>
+                    </div>
+                  </div>
+                  <div class="telegram-row">
+                    <span class="telegram-row-label">Period</span>
+                    <div id="telegramPeriods" class="telegram-segmented" role="radiogroup" aria-label="How far back to copy">
+                      <button class="telegram-segment is-selected" type="button" role="radio" aria-checked="true" data-period="all">All</button>
+                      <button class="telegram-segment" type="button" role="radio" aria-checked="false" data-period="1">Today</button>
+                      <button class="telegram-segment" type="button" role="radio" aria-checked="false" data-period="7">7d</button>
+                      <button class="telegram-segment" type="button" role="radio" aria-checked="false" data-period="30">30d</button>
+                      <button class="telegram-segment" type="button" role="radio" aria-checked="false" data-period="custom">Dates</button>
+                    </div>
+                  </div>
+                  <!-- Plain text, not <input type="date">: the native picker
+                       opens a window the popup cannot contain, so it spills
+                       off the edge and drags a system widget in with it. -->
+                  <div class="telegram-row telegram-custom-dates hidden" id="telegramCustomDates">
+                    <span class="telegram-row-label"></span>
+                    <input type="text" id="telegramDateFrom" class="telegram-date-input" inputmode="numeric"
+                           placeholder="DD.MM" maxlength="5" aria-label="Copy messages from this day and month" />
+                    <span class="telegram-dash" aria-hidden="true">–</span>
+                    <input type="text" id="telegramDateTo" class="telegram-date-input" inputmode="numeric"
+                           placeholder="DD.MM" maxlength="5" aria-label="Copy messages up to this day and month" />
+                    <button id="telegramDateClear" class="telegram-date-clear" type="button" aria-label="Clear both dates">×</button>
+                  </div>
+                </div>
+
+                <!-- The same four switches as Settings → Formatting, one tap
+                     away. Each chip is a view of its checkbox, not a second
+                     copy of the setting. -->
+                <div class="page-recipe" role="group" aria-label="What the Markdown keeps">
+                  <button class="recipe-chip" type="button" aria-pressed="true" data-setting="includeLinks">Links</button>
+                  <button class="recipe-chip" type="button" aria-pressed="true" data-setting="includeImages">Images</button>
+                  <button class="recipe-chip" type="button" aria-pressed="true" data-setting="preserveTables">Tables</button>
+                  <button class="recipe-chip" type="button" aria-pressed="true" data-setting="includeMetadata">Metadata</button>
+                </div>
+
+                <!-- How much of a conversation to copy, by date or by exchange
+                     (a message and its reply). Hidden unless turned on in
+                     Settings → Chats; only the active mode's row shows. -->
+                <div class="chat-options">
+                <div class="card-row chat-days-row">
+                  <span class="card-row-label" id="chatDaysLabel">Last days</span>
+                  <div id="chatDaySegments" class="card-segmented" role="radiogroup" aria-labelledby="chatDaysLabel">
+                    <button class="card-segment" type="button" role="radio" aria-checked="false" data-value="1">1d</button>
+                    <button class="card-segment is-selected" type="button" role="radio" aria-checked="true" data-value="3">3d</button>
+                    <button class="card-segment" type="button" role="radio" aria-checked="false" data-value="7">7d</button>
+                    <button class="card-segment" type="button" role="radio" aria-checked="false" data-value="30">30d</button>
+                  </div>
+                </div>
+                <div class="card-row chat-exchanges-row">
+                  <span class="card-row-label" id="chatLimitLabel">Exchanges</span>
+                  <div id="chatSegments" class="card-segmented" role="radiogroup" aria-labelledby="chatLimitLabel">
+                    <button class="card-segment" type="button" role="radio" aria-checked="false" data-value="1">1</button>
+                    <button class="card-segment" type="button" role="radio" aria-checked="false" data-value="3">3</button>
+                    <button class="card-segment" type="button" role="radio" aria-checked="false" data-value="5">5</button>
+                    <button class="card-segment is-selected" type="button" role="radio" aria-checked="true" data-value="10">10</button>
+                    <button class="card-segment" type="button" role="radio" aria-checked="false" data-value="25">25</button>
+                    <button class="card-segment" type="button" role="radio" aria-checked="false" data-value="all">All</button>
+                  </div>
+                </div>
+                </div>
+
+                <div class="page-receipt">
+                  <div id="statusIndicator" class="status" role="status" aria-live="polite"></div>
+                  <div id="tokenCounter" class="token-counter hidden">
+                    <span id="tokenCountValue" class="token-value">--</span>
+                    <span class="token-label">tokens</span>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Single-tab actions: one ink key that does the job, and a row
+                   of quieter keys for the variants. -->
+              <div id="singleTabActions" class="action-buttons">
+                <!-- Only rendered on an open Telegram conversation. -->
+                <div id="telegramAction" class="telegram-action hidden">
+                  <button id="copyTelegramBtn" class="primary-btn telegram-btn" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="btn-icon" aria-hidden="true">
+                      <path d="M21.94 4.3 18.9 19.1c-.23 1.02-.84 1.27-1.7.79l-4.7-3.47-2.27 2.18c-.25.25-.46.46-.94.46l.33-4.78 8.7-7.86c.38-.34-.08-.53-.59-.19l-10.75 6.77-4.63-1.45c-1.01-.31-1.03-1 .21-1.49l18.1-6.98c.84-.31 1.57.19 1.28 1.23Z"/>
+                    </svg>
+                    <span class="btn-text" id="telegramBtnText">Copy Telegram</span>
+                  </button>
+                </div>
+
+                <!-- Only rendered on pages that hold an LLM conversation -->
+                <div id="chatAction" class="chat-action hidden">
+                  <button id="copyChatBtn" class="primary-btn chat-btn" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="btn-icon" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 20.25 4.5 21l.75-3.75A8.25 8.25 0 1 1 21 12a8.25 8.25 0 0 1-12.75 8.25Z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8.5 10.5h7M8.5 14h4.5" />
+                    </svg>
+                    <span class="btn-text">Copy chat</span>
+                  </button>
+                </div>
+
+                <div id="convertSplit" class="convert-action">
+                  <button id="convertBtn" class="primary-btn" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="btn-icon" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+                    </svg>
+                    <span class="btn-text">Copy as Markdown</span>
+                  </button>
+                </div>
+
+                <div class="key-row">
+                  <button id="downloadBtn" class="key" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="key-icon" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    <span class="key-label">Save .md</span>
+                  </button>
+                  <button id="convertOverrideBtn" class="key" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="key-icon" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.5h16.5v15H3.75zM3.75 9h16.5M9 9v10.5" />
+                    </svg>
+                    <span class="key-label override-label">Full page</span>
+                  </button>
+                  <!-- Only on a conversation: the rendered page, for when the
+                       chat detection is wrong or the page is what is wanted.
+                       It captures only what is on screen, so it is a key, not
+                       the lead. -->
+                  <button id="chatPageFallbackBtn" class="key" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="key-icon" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.5h16.5v15H3.75zM3.75 9h16.5M9 9v10.5" />
+                    </svg>
+                    <span class="key-label">Copy page</span>
+                  </button>
+                  <!-- Only rendered when the page actually has a selection -->
+                  <button id="copySelectionBtn" class="key hidden" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="key-icon" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 6.75h15M4.5 12h9M4.5 17.25h6" />
+                    </svg>
+                    <span class="key-label">Selection</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Multi-tab actions (hidden by default). The card above lists
+                   the tabs; the count is its mode label. -->
+              <div id="multiTabActions" class="multi-tab-actions hidden">
+                <button id="copyAllBtn" class="primary-btn" type="button">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="btn-icon" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+                  </svg>
+                  <span class="btn-text">Copy <span id="selectedTabCount">0</span> tabs</span>
+                </button>
+                <div class="key-row">
+                  <button id="downloadMergedBtn" class="key" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="key-icon" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    <span class="key-label">Save merged</span>
+                  </button>
+                  <button id="downloadZipBtn" class="key" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="key-icon" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                    </svg>
+                    <span class="key-label">Save as ZIP</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="bottom-spacer"></div>
+        </div>
+
+
+      </div>
+
+      <!-- Settings View -->
+      <div id="settingsView" class="view" aria-hidden="true">
+        <div class="container">
+          <header class="header">
+            <button id="backToMainBtn" class="icon-btn" type="button" aria-label="Back">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="icon"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"
+                />
+              </svg>
+            </button>
+            <h1 class="settings-title">Settings</h1>
+            <div class="header-spacer"></div>
+          </header>
+
+          <div class="settings-content">
+            <!-- Rows, not forms: the name on the left, the control on the
+                 right, the explanation under the name. A site's own options
+                 open under it only while that site's mode is on. -->
+            <section class="settings-section" aria-labelledby="settings-copy">
+              <h2 class="settings-section-title" id="settings-copy">Copy</h2>
+              <div class="settings-list">
+                <div class="setting-row">
+                  <span class="setting-label" id="scopeLabel">Scope</span>
+                  <div class="setting-segmented" role="radiogroup" aria-labelledby="scopeLabel">
+                    <label><input type="radio" name="contentScope" value="mainContent" checked /><span>Article</span></label>
+                    <label><input type="radio" name="contentScope" value="fullPage" /><span>Full page</span></label>
+                    <label><input type="radio" name="contentScope" value="selection" /><span>Selection</span></label>
+                  </div>
+                </div>
+                <label class="setting-row setting-option">
+                  <span class="setting-label">Tables</span>
+                  <input type="checkbox" id="preserveTables" class="switch" checked />
+                </label>
+                <label class="setting-row setting-option">
+                  <span class="setting-label">Images</span>
+                  <input type="checkbox" id="includeImages" class="switch" checked />
+                </label>
+                <label class="setting-row setting-option">
+                  <span class="setting-label">Links</span>
+                  <input type="checkbox" id="includeLinks" class="switch" checked />
+                </label>
+                <label class="setting-row setting-option">
+                  <span class="setting-label">Page title as a heading</span>
+                  <input type="checkbox" id="includeTitle" class="switch" checked />
+                </label>
+                <div class="setting-block">
+                  <label class="setting-row setting-option">
+                    <span class="setting-label">Source metadata at the end</span>
+                    <input type="checkbox" id="includeMetadata" class="switch" checked />
+                  </label>
+                  <div id="metadataFormatContainer" class="setting-sub metadata-format-container">
+                    <label for="metadataFormat" class="setting-hint">
+                      Variables: {title}, {url}, {date}, {author}, {siteName}, {excerpt}
+                    </label>
+                    <textarea id="metadataFormat" class="metadata-format-input" rows="3"
+                              placeholder="---&#10;Title: {title}&#10;Author: {author}&#10;Date: {date}&#10;Source: {url}">---
+Source: [{title}]({url})</textarea>
+                    <button id="resetMetadataFormat" class="reset-btn" type="button">Reset to default</button>
+                  </div>
+                </div>
+                <label class="setting-row setting-option">
+                  <span class="setting-label">Token count after a copy</span>
+                  <input type="checkbox" id="showTokenCount" class="switch" checked />
+                </label>
+                <label class="setting-row setting-option">
+                  <span class="setting-label">Scroll to load more first
+                    <small class="setting-hint">For virtualised pages (Gemini, ChatGPT): scrolls before reading so more of the page is loaded. Off by default.</small>
+                  </span>
+                  <input type="checkbox" id="triggerLazyLoading" class="switch" />
+                </label>
+              </div>
+            </section>
+
+            <section class="settings-section" aria-labelledby="settings-chats">
+              <h2 class="settings-section-title" id="settings-chats">Chats</h2>
+              <div class="settings-list">
+                <div class="setting-row setting-row-stacked">
+                  <span class="setting-label" id="chatRangeLabel">What a chat copy takes
+                    <small class="setting-hint">Recent days needs message dates: ChatGPT and Claude have them. A chat without dates is cut by the exchange count below instead, and the copy says so.</small>
+                  </span>
+                  <div class="setting-segmented" role="radiogroup" aria-labelledby="chatRangeLabel">
+                    <label><input type="radio" name="chatRangeMode" value="days" checked /><span>Recent days</span></label>
+                    <label><input type="radio" name="chatRangeMode" value="exchanges" /><span>Last exchanges</span></label>
+                    <label><input type="radio" name="chatRangeMode" value="all" /><span>Whole chat</span></label>
+                  </div>
+                </div>
+                <label class="setting-row chat-days-setting"><span class="setting-label">Days</span>
+                  <select id="chatDays" class="token-limit-select">
+                    <option value="1">1</option>
+                    <option value="3">3</option>
+                    <option value="7">7</option>
+                    <option value="30">30</option>
+                  </select>
+                </label>
+                <label class="setting-row chat-exchanges-setting"><span class="setting-label">Exchanges</span>
+                  <select id="chatExchangeDefault" class="token-limit-select">
+                    <option value="1">1</option>
+                    <option value="3">3</option>
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="all">All</option>
+                  </select>
+                </label>
+                <label class="setting-row setting-option">
+                  <span class="setting-label">Show the range on the page card</span>
+                  <input type="checkbox" id="showChatRange" class="switch" />
+                </label>
+              </div>
+            </section>
+
+            <section class="settings-section" aria-labelledby="settings-sites">
+              <h2 class="settings-section-title" id="settings-sites">Sites</h2>
+              <p class="settings-section-lede">Pages read by their own extractor instead of the generic one.</p>
+              <div class="settings-list">
+                <div class="setting-block">
+                  <label class="setting-row setting-option">
+                    <span class="setting-label">Reddit
+                      <small class="setting-hint">The post with its full comment tree: author, score, nesting.</small>
+                    </span>
+                    <input type="checkbox" id="redditMode" class="switch" />
+                  </label>
+                  <div class="setting-sub">
+                    <label class="setting-sub-row"><span>Comment sort</span>
+                      <select id="redditCommentSort" class="token-limit-select">
+                        <option value="confidence">Best</option>
+                        <option value="top">Top</option>
+                        <option value="new">New</option>
+                        <option value="controversial">Controversial</option>
+                        <option value="old">Old</option>
+                        <option value="qa">Q&amp;A</option>
+                      </select>
+                    </label>
+                    <label class="setting-sub-row"><span>Max comments</span>
+                      <select id="redditMaxComments" class="token-limit-select">
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="250">250</option>
+                        <option value="500">500</option>
+                        <option value="all">All</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="setting-block">
+                  <label class="setting-row setting-option">
+                    <span class="setting-label">GitHub
+                      <small class="setting-hint">A repository as its facts, the README as its original Markdown and the full file tree, from GitHub's API.</small>
+                    </span>
+                    <input type="checkbox" id="githubMode" class="switch" />
+                  </label>
+                  <div class="setting-sub">
+                    <label class="setting-sub-row"><span>README</span><input type="checkbox" id="githubIncludeReadme" class="switch switch-sm" /></label>
+                    <label class="setting-sub-row"><span>File tree</span><input type="checkbox" id="githubIncludeTree" class="switch switch-sm" /></label>
+                    <label class="setting-sub-row"><span>Max tree entries</span>
+                      <select id="githubMaxTreeEntries" class="token-limit-select">
+                        <option value="250">250</option>
+                        <option value="500">500</option>
+                        <option value="1000">1000</option>
+                        <option value="5000">5000</option>
+                        <option value="all">All</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="setting-block">
+                  <label class="setting-row setting-option">
+                    <span class="setting-label">YouTube
+                      <small class="setting-hint">A video's facts, the full description, and the comments, which the page loads only on scroll.</small>
+                    </span>
+                    <input type="checkbox" id="youtubeMode" class="switch" />
+                  </label>
+                  <div class="setting-sub">
+                    <label class="setting-sub-row"><span>Description</span><input type="checkbox" id="youtubeIncludeDescription" class="switch switch-sm" /></label>
+                    <label class="setting-sub-row"><span>Comments</span><input type="checkbox" id="youtubeIncludeComments" class="switch switch-sm" /></label>
+                    <label class="setting-sub-row"><span>Max comments</span>
+                      <select id="youtubeMaxComments" class="token-limit-select">
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="250">250</option>
+                        <option value="all">All</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="setting-block">
+                  <label class="setting-row setting-option">
+                    <span class="setting-label">Discord
+                      <small class="setting-hint">The open channel as a transcript, read from the page: Discord's API would need your account token.</small>
+                    </span>
+                    <input type="checkbox" id="discordMode" class="switch" />
+                  </label>
+                  <div class="setting-sub">
+                    <label class="setting-sub-row"><span>Max messages</span>
+                      <select id="discordMaxMessages" class="token-limit-select">
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                        <option value="500">500</option>
+                        <option value="all">All loaded</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="setting-block">
+                  <label class="setting-row setting-option">
+                    <span class="setting-label">X
+                      <small class="setting-hint">A post with its thread, quoted posts, replies and counts, scrolling the timeline for them.</small>
+                    </span>
+                    <input type="checkbox" id="xMode" class="switch" />
+                  </label>
+                  <div class="setting-sub">
+                    <label class="setting-sub-row"><span>Replies in threads</span><input type="checkbox" id="xIncludeReplies" class="switch switch-sm" /></label>
+                    <label class="setting-sub-row"><span>Max posts</span>
+                      <select id="xMaxPosts" class="token-limit-select">
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="250">250</option>
+                        <option value="all">All</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-section" aria-labelledby="settings-interface">
+              <h2 class="settings-section-title" id="settings-interface">Interface</h2>
+              <div class="settings-list">
+                <div class="setting-row">
+                  <span class="setting-label">Theme</span>
+                  <div class="theme-switcher">
+                    <button id="autoThemeBtn" class="theme-btn active" type="button" aria-label="Follow the browser">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="theme-icon-small" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 0v18" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3a9 9 0 0 1 0 18" fill="currentColor" stroke="none" opacity="0.35" />
+                      </svg>
+                    </button>
+                    <button id="lightThemeBtn" class="theme-btn" type="button" aria-label="Light">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="theme-icon-small" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+                      </svg>
+                    </button>
+                    <button id="darkThemeBtn" class="theme-btn" type="button" aria-label="Dark">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="theme-icon-small" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="setting-row">
+                  <span class="setting-label">Open Unshell</span>
+                  <code id="popupShortcut" class="setting-value">Alt+Shift+L</code>
+                </div>
+                <div class="setting-row">
+                  <span class="setting-label">Copy the page</span>
+                  <code id="quickConvertShortcut" class="setting-value">Alt+Shift+M</code>
+                </div>
+                <div class="setting-row">
+                  <span class="setting-label">Save the page
+                    <small class="setting-hint">Change shortcuts at <a href="#" id="shortcutLink" class="shortcut-link">chrome://extensions/shortcuts</a></small>
+                  </span>
+                  <code id="downloadShortcut" class="setting-value">Alt+Shift+D</code>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-section" aria-labelledby="settings-about">
+              <h2 class="settings-section-title" id="settings-about">About</h2>
+              <div class="settings-list" id="aboutGroup">
+                <div class="setting-row">
+                  <span class="setting-label">Version</span>
+                  <span id="aboutVersion" class="setting-value">—</span>
+                </div>
+                <div class="setting-row">
+                  <span class="setting-label">Build
+                    <small class="setting-hint">A hash of the extension's own files. A reload that still shows the old id did not take.</small>
+                  </span>
+                  <span id="aboutBuild" class="setting-value">—</span>
+                </div>
+                <div class="setting-block">
+                  <label class="setting-row setting-option">
+                    <span class="setting-label">Debug logging
+                      <small class="setting-hint">Logs are rewritten on each conversion.</small>
+                    </span>
+                    <input type="checkbox" id="debugMode" class="switch" />
+                  </label>
+                  <div class="setting-sub">
+                    <button id="copyLogsBtn" class="secondary-btn" type="button">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="btn-icon" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9.75a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
+                      </svg>
+                      <span class="btn-text">Copy debug logs</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="libs/browser-polyfill.js"></script>
+    <script src="motion.js"></script>
+    <script src="libs/jszip.min.js"></script>
+    <script src="settings.js"></script>
+    <script src="multi-tab-utils.js"></script>
+    <script src="token-counter.js"></script>
+    <script src="page-icon.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

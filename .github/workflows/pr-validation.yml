@@ -1,0 +1,122 @@
+name: Build Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+
+jobs:
+  validate-build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y jq zip
+
+    - name: Make build script executable
+      run: chmod +x ./scripts/build.sh
+
+    - name: Build Chrome package
+      run: ./scripts/build.sh chrome
+
+    - name: Build Firefox package
+      run: ./scripts/build.sh firefox
+
+    - name: Build Source package
+      run: ./scripts/build.sh source
+
+    - name: Verify build artifacts
+      run: |
+        echo "Checking build artifacts..."
+        VERSION=$(jq -r '.version' extension/manifest.json)
+        if [ ! -f "dist/Unshell-Chrome-v${VERSION}.zip" ]; then
+          echo "::error::Chrome build artifact not found"
+          exit 1
+        fi
+        if [ ! -f "dist/Unshell-Firefox-v${VERSION}.zip" ]; then
+          echo "::error::Firefox build artifact not found"
+          exit 1
+        fi
+        if [ ! -f "dist/Unshell-Source-v${VERSION}.zip" ]; then
+          echo "::error::Source build artifact not found"
+          exit 1
+        fi
+        echo "All build artifacts created successfully"
+
+    # build.sh copies every file by name, three times over. A file added to
+    # extension/ and missed in one list builds fine and ships without it.
+    - name: Verify packages contain every extension file
+      run: |
+        VERSION=$(jq -r '.version' extension/manifest.json)
+        missing=0
+        # The source package is the extension as written: every file in it.
+        listing=$(unzip -Z1 "dist/Unshell-Source-v${VERSION}.zip")
+        while IFS= read -r file; do
+          rel="${file#extension/}"
+          if ! grep -qxF "$rel" <<<"$listing"; then
+            echo "::error::Source package is missing $rel"
+            missing=1
+          fi
+        done < <(find extension -type f ! -name '.*' | sort)
+        # A browser package carries every script, page and stylesheet.
+        for target in Chrome Firefox; do
+          listing=$(unzip -Z1 "dist/Unshell-${target}-v${VERSION}.zip")
+          for file in extension/*.js extension/*.html extension/*.css; do
+            name="${file#extension/}"
+            if ! grep -qxF "$name" <<<"$listing"; then
+              echo "::error::${target} package is missing $name"
+              missing=1
+            fi
+          done
+        done
+        if [ "$missing" -ne 0 ]; then exit 1; fi
+        echo "Every extension file is in its packages"
+    # The add-on ID is the add-on: AMO signs and updates by it. It is declared
+    # once, in extension/manifest.json, so the Firefox package cannot ship one
+    # the source does not say.
+    - name: Verify the Firefox package keeps the add-on ID from extension/manifest.json
+      run: |
+        VERSION=$(jq -r '.version' extension/manifest.json)
+        mkdir -p /tmp/firefox-id
+        unzip -q -o "dist/Unshell-Firefox-v${VERSION}.zip" manifest.json -d /tmp/firefox-id
+        want=$(jq -c '.browser_specific_settings' extension/manifest.json)
+        got=$(jq -c '.browser_specific_settings' /tmp/firefox-id/manifest.json)
+        if [ "$want" != "$got" ]; then
+          echo "::error::Firefox package has browser_specific_settings $got, extension/manifest.json has $want"
+          exit 1
+        fi
+        if grep -nE '"id": *"[^"]+@[^"]+"' scripts/build.sh; then
+          echo "::error::scripts/build.sh restates the add-on ID; it must come from extension/manifest.json only"
+          exit 1
+        fi
+        echo "Firefox package declares $(jq -r '.browser_specific_settings.gecko.id' extension/manifest.json)"
+
+    - name: Validate Chrome manifest
+      run: |
+        echo "Validating Chrome manifest.json..."
+        VERSION=$(jq -r '.version' extension/manifest.json)
+        mkdir -p /tmp/chrome-extract
+        unzip -q -o "dist/Unshell-Chrome-v${VERSION}.zip" manifest.json -d /tmp/chrome-extract
+        jq empty /tmp/chrome-extract/manifest.json
+        echo "Chrome manifest.json is valid JSON"
+
+    - name: Validate Firefox manifest
+      run: |
+        echo "Validating Firefox manifest.json..."
+        VERSION=$(jq -r '.version' extension/manifest.json)
+        mkdir -p /tmp/firefox-extract
+        unzip -q -o "dist/Unshell-Firefox-v${VERSION}.zip" manifest.json -d /tmp/firefox-extract
+        jq empty /tmp/firefox-extract/manifest.json
+        echo "Firefox manifest.json is valid JSON"
+
+    - name: List build artifacts
+      run: |
+        echo "Build artifacts:"
+        ls -la dist/
