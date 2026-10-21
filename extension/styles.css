@@ -1,0 +1,1769 @@
+/* Unshell Styles
+ * Created by @dekrezz (https://github.com/dekrezz)
+ *
+ * Design notes (see AGENTS.md → "Motion and interface"):
+ * - The visual language follows Google Antigravity: a white (or #121317)
+ *   field, near-black ink, solid pill actions, faint hairlines instead of
+ *   shadows, and colour only where it means something — the multicolour
+ *   spectrum marks AI work in progress, the particle halo is decoration.
+ * - Type is Geist for reading and Geist Mono for data and utility labels,
+ *   bundled with the extension (assets/fonts), so the popup still makes no
+ *   network request.
+ * - Motion the user can touch lives in motion.js (springs), never in CSS
+ *   transitions: a transition cannot be grabbed and reversed mid-flight.
+ *   Transitions here are limited to colour, opacity, shadow and the press
+ *   scale, none of which are gesture-driven.
+ * - Spacing and type scale in rem so the user's text-size setting grows the
+ *   layout with the text.
+ * - Tracking is size-specific: tight on large text, slightly open on small
+ *   caps, ~0 on body copy.
+ */
+
+/* ==========================================================================
+   FONTS
+   ==========================================================================
+   Variable files, one per family: every weight the stylesheet asks for comes
+   out of the same 70 KB. `block` rather than `swap`, because the files are
+   on disk and preloaded by popup.html — a swap would only ever show up as a
+   one-frame flash of the system face on every open. */
+
+@font-face {
+  font-family: "Geist";
+  src: url("assets/fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("assets/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+
+/* ==========================================================================
+   TOKENS
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  --font-sans: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+
+  /* The primary action is ink: a solid near-black pill with a white label. */
+  --action-color: #121317;
+  --action-hover: #2a2c33;
+  --action-pressed: #000000;
+  --action-label: #ffffff;
+  /* Hairline between the two halves of a split key. */
+  --action-seam: rgba(255, 255, 255, 0.16);
+
+  /* Accent — links and focus. */
+  --primary-color: #1a73e8;
+  --primary-hover: #1557b0;
+  --primary-active: #174ea6;
+  --primary-label: #ffffff;
+  --primary-tint: rgba(26, 115, 232, 0.1);
+  --success-color: #188038;
+  --error-color: #d93025;
+  --warning-color: #b06000;
+
+  /* The spectrum is reserved for AI work: a run in progress, a conversation
+     copy. It is never a background for text. */
+  --spectrum: linear-gradient(90deg, #4285f4 0%, #7b61ff 36%, #ea4335 68%, #fbbc04 100%);
+  --spectrum-conic: conic-gradient(from 0deg, #4285f4, #7b61ff, #ea4335, #fbbc04, #34a853, #4285f4);
+  /* The frame the browser gets when Antigravity's agent takes the wheel. */
+  --glow: 0 0 0 1px var(--primary-color), 0 0 0 4px rgba(26, 115, 232, 0.16);
+
+  /* Surfaces */
+  --background-color: #ffffff;
+  --surface-color: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f8f9fa;
+  --section-bg: #f1f3f4;
+
+  /* Materials. Antigravity does not do glass, so chrome is nearly solid; the
+     little translucency left is what lets content dissolve under the edges. */
+  --material-chrome: rgba(255, 255, 255, 0.96);
+  --material-menu: #ffffff;
+  --material-edge: rgba(18, 19, 23, 0.08);
+  --material-blur-sm: blur(8px);
+  --material-blur-lg: blur(12px);
+  --scrim: rgba(18, 19, 23, 0.14);
+
+  /* Labels */
+  --text-color: #121317;
+  --label-secondary: #45474d;
+  --label-tertiary: #7c7f87;
+
+  /* Fills & lines */
+  --fill-quaternary: rgba(18, 19, 23, 0.03);
+  --fill-tertiary: rgba(18, 19, 23, 0.055);
+  --fill-secondary: rgba(18, 19, 23, 0.09);
+  --secondary-fill: #eff0f3;
+  --secondary-hover: #e5e6ea;
+  --border-color: rgba(18, 19, 23, 0.14);
+  --separator: rgba(18, 19, 23, 0.08);
+
+  /* Elevation — faint by design: hairlines carry structure, not shadows. */
+  --shadow-1: 0 1px 2px rgba(18, 19, 23, 0.05);
+  --shadow-2: 0 12px 32px -8px rgba(18, 19, 23, 0.16), 0 2px 6px rgba(18, 19, 23, 0.05);
+  --shadow-3: 0 -12px 40px -10px rgba(18, 19, 23, 0.16);
+
+
+  /* Radii */
+  --r-xs: 0.375rem;
+  --r-sm: 0.5rem;
+  --r-md: 0.875rem;
+  --r-lg: 1rem;
+  --r-xl: 1.5rem;
+  --r-pill: 999px;
+
+  /* Rhythm */
+  --gap-xs: 0.25rem;
+  --gap-sm: 0.5rem;
+  --gap-md: 0.75rem;
+  --gap-lg: 1rem;
+  --gap-xl: 1.25rem;
+  --edge: 1.25rem;
+
+  /* Non-gesture transitions only */
+  --t-fast: 100ms cubic-bezier(0.2, 0, 0, 1);
+  --t-base: 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.light-theme {
+  color-scheme: light;
+}
+
+/* Dark is Antigravity's own canvas, #121317, with the action reversed: a
+   white pill with an ink label. */
+.dark-theme {
+  color-scheme: dark;
+
+  --action-color: #eceef1;
+  --action-hover: #ffffff;
+  --action-pressed: #d4d6db;
+  --action-label: #121317;
+  --action-seam: rgba(18, 19, 23, 0.14);
+
+  --primary-color: #8ab4f8;
+  --primary-hover: #aecbfa;
+  --primary-active: #c6dafc;
+  --primary-label: #121317;
+  --primary-tint: rgba(138, 180, 248, 0.16);
+  --success-color: #81c995;
+  --error-color: #f28b82;
+  --warning-color: #fdd663;
+
+  --glow: 0 0 0 1px var(--primary-color), 0 0 0 4px rgba(138, 180, 248, 0.18);
+
+  --background-color: #121317;
+  --surface-color: #1a1b20;
+  --surface-raised: #24262c;
+  --surface-sunken: #17181c;
+  --section-bg: #1f2025;
+
+  --material-chrome: rgba(18, 19, 23, 0.96);
+  --material-menu: #1e2025;
+  --material-edge: rgba(255, 255, 255, 0.08);
+  --scrim: rgba(0, 0, 0, 0.45);
+
+  --text-color: #e8eaed;
+  --label-secondary: #a9acb3;
+  --label-tertiary: #72767e;
+
+  --fill-quaternary: rgba(255, 255, 255, 0.03);
+  --fill-tertiary: rgba(255, 255, 255, 0.06);
+  --fill-secondary: rgba(255, 255, 255, 0.1);
+  --secondary-fill: #24262c;
+  --secondary-hover: #2c2f36;
+  --border-color: rgba(255, 255, 255, 0.14);
+  --separator: rgba(255, 255, 255, 0.08);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 14px 36px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-3: 0 -14px 44px -10px rgba(0, 0, 0, 0.7);
+
+}
+
+/* Aliases are declared on the theme classes as well as the root. A custom
+   property that refers to another resolves where it is declared: set only on
+   :root, these took the light values and kept them inside .dark-theme, which
+   put ink-coloured text on the dark field. popup.html's inline hints ask for
+   --text-secondary by name. */
+:root,
+.light-theme,
+.dark-theme {
+  --label-primary: var(--text-color);
+  --dark-gray: var(--label-secondary);
+  --text-secondary: var(--label-secondary);
+  --light-gray: var(--fill-quaternary);
+  --setting-hover: var(--fill-tertiary);
+}
+
+/* ==========================================================================
+   BASE
+   ========================================================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  letter-spacing: -0.003em;
+  margin: 0;
+  padding: 0;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  transition: background-color var(--t-base), color var(--t-base);
+}
+
+/* Spacing is the layout's job — gap and padding, in rem. The browser's own
+   paragraph and list margins sat between the sheet's rows and its lists and
+   spent 90px of the run state on nothing. */
+h1,
+h2,
+h3,
+p,
+ul {
+  margin: 0;
+}
+
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+h1 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.025em; /* Geist runs open at display sizes */
+}
+
+h2 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+/* Section labels are utility lines, so they are set the way Antigravity sets
+   its code-adjacent labels: monospaced, small, uppercase, quiet. */
+h3 {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--label-tertiary);
+}
+
+button,
+select,
+textarea,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+.hidden {
+  display: none !important;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+
+/* ==========================================================================
+   SHELL — two views on one plane
+   ========================================================================== */
+
+.popup-wrapper {
+  width: 25rem;
+  /* Sized to the tallest main-view state. Constant in every state: the popup
+     window must never resize under the pointer. */
+  height: 24.5rem;
+  position: relative;
+  overflow: hidden;
+  background: var(--background-color);
+}
+
+.view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--background-color);
+  overflow: hidden;
+  /* The views cross-fade in place under a spring in popup.js; nothing about
+     them moves sideways. */
+  will-change: opacity;
+}
+
+/* Fallback placement before the spring runtime takes over (and if it never
+   does): main visible, settings parked off-screen right. Same axis in, same
+   axis out. */
+/* Placement before the spring runtime takes over (and if it never does):
+   main shown, settings transparent over it. */
+.view#settingsView {
+  opacity: 0;
+}
+
+.view[aria-hidden="true"] {
+  pointer-events: none;
+}
+
+.container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#mainView .container {
+  position: relative;
+  padding: 0;
+}
+
+/* ==========================================================================
+   CHROME — a thin top bar: the mark and the name left, settings right
+   ========================================================================== */
+
+.header {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  padding: 0.625rem var(--edge) 0.625rem 1.125rem;
+  background: var(--material-chrome);
+  -webkit-backdrop-filter: var(--material-blur-lg);
+  backdrop-filter: var(--material-blur-lg);
+  border-bottom: 1px solid var(--separator);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+/* The shell opened at the corner, its kernel in the label colour, so the mark
+   follows the theme without a second asset. */
+.brand-mark {
+  width: 1.375rem;
+  height: 1.375rem;
+  flex: none;
+  color: var(--text-color);
+}
+
+.brand-name {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--text-color);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+}
+
+.settings-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-align: center;
+  flex: 1;
+}
+
+.header-spacer {
+  width: 2rem;
+  flex: none;
+}
+
+.icon-btn,
+a.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--label-secondary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color var(--t-fast), color var(--t-fast),
+    transform var(--t-fast);
+}
+
+.icon-btn:hover {
+  background: var(--fill-tertiary);
+  color: var(--text-color);
+}
+
+.icon-btn.is-pressed {
+  background: var(--fill-secondary);
+  transform: scale(0.92);
+}
+
+.icon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* ==========================================================================
+   MAIN VIEW
+   ==========================================================================
+   Three bands, top to bottom: the page being copied, one ink key that copies
+   it, and a row of quieter keys for the variants. The page card takes the
+   height that is left, so the popup has no empty field to decorate. */
+
+.top-section {
+  padding: 0;
+}
+
+.center-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: var(--gap-lg) var(--edge) var(--gap-md);
+  min-height: 0;
+  position: relative;
+  z-index: 4;
+}
+
+.bottom-spacer {
+  height: var(--gap-sm);
+  flex: none;
+}
+
+.main-controls {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+  min-height: 0;
+}
+
+.action-buttons,
+.multi-tab-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  flex: none;
+}
+
+.multi-tab-actions.hidden,
+.action-buttons.hidden {
+  display: none !important;
+}
+
+/* Page card ------------------------------------------------------------ */
+
+.page-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 0.875rem 1rem 0.75rem;
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
+  border: 1px solid var(--separator);
+  position: relative;
+  overflow: hidden;
+}
+
+.page-head,
+.page-recipe,
+.page-receipt,
+.page-card .telegram-options {
+  flex: none;
+}
+
+/* The current-page lockup: the site's icon on its tile, then the title over
+   the address. */
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+/* With no title shown (Telegram, merged tabs) the address is the whole
+   heading, so it sits on the icon's centre line. */
+#mainView[data-mode="telegram"] .page-head,
+#mainView[data-mode="multi"] .page-head {
+  align-items: center;
+}
+
+.page-heading {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* The host's initial on an ink tile until the site's icon arrives. */
+.page-glyph {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.625rem;
+  background: var(--action-color);
+  color: var(--action-label);
+  font-family: var(--font-mono);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.page-glyph:empty::before {
+  content: "·";
+}
+
+/* The icon's tile follows the browser's colour scheme, not the popup's theme:
+   the browser picks the icon variant for its own tab strip (a white logo for a
+   dark strip), so the tile has to be the strip's colour for that variant to
+   show. On a white tile a white logo was simply not there. */
+.page-glyph.has-icon {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(18, 19, 23, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .page-glyph.has-icon {
+    background: #2b2d33;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  }
+}
+
+.page-glyph img {
+  width: 1.25rem;
+  height: 1.25rem;
+  object-fit: contain;
+}
+
+.page-host {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.71875rem;
+  color: var(--label-secondary);
+}
+
+.page-title {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--text-color);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* On Telegram the key already names the conversation, and on merged tabs the
+   list does: the title would only repeat it, in room the limits need. */
+#mainView[data-mode="telegram"] .page-title,
+#mainView[data-mode="multi"] .page-title {
+  display: none;
+}
+
+.page-tabs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  counter-reset: source-tab;
+}
+
+.page-tabs li {
+  counter-increment: source-tab;
+  display: flex;
+  gap: 0.5rem;
+  min-width: 0;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.page-tabs li::before {
+  content: counter(source-tab);
+  flex: none;
+  width: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.6;
+  color: var(--label-tertiary);
+}
+
+.page-tabs li.page-tabs-more {
+  color: var(--label-secondary);
+}
+
+.page-tabs li.page-tabs-more::before {
+  content: "+";
+}
+
+/* The Telegram limits are part of *what* is copied, so they sit on the card,
+   flat, instead of in a box of their own. */
+.page-card .telegram-options {
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 0;
+}
+
+#mainView:not([data-mode="telegram"]) .telegram-options,
+#mainView:not([data-mode="chat"]) .chat-options,
+#mainView[data-chat-card="off"] .chat-options,
+#mainView[data-chat-range="all"] .chat-options {
+  display: none;
+}
+
+/* The chat range row shows the active mode's choices only. */
+.chat-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+#mainView[data-chat-range="days"] .chat-exchanges-row,
+#mainView[data-chat-range="exchanges"] .chat-days-row {
+  display: none;
+}
+
+/* On a chat the card holds the exchange limit as well, in the same height,
+   so the title keeps one line. */
+#mainView[data-mode="chat"] .page-title {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+
+.page-card .chat-options {
+  flex: none;
+}
+
+/* Recipe chips: what the Markdown keeps. On is a filled chip in the label
+   colour; off is an outline, struck through, in the quiet colour — so the
+   state is carried by fill and the strike as well as by colour. */
+.page-recipe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: auto;
+}
+
+#mainView[data-mode="telegram"] .page-recipe,
+#mainView[data-mode="multi"] .page-recipe {
+  display: none;
+}
+
+.recipe-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.625rem;
+  padding: 0 0.5625rem;
+  border: 1px solid var(--separator);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--label-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background-color var(--t-fast), color var(--t-fast),
+    border-color var(--t-fast), transform var(--t-fast);
+}
+
+.recipe-chip:hover {
+  border-color: var(--border-color);
+  color: var(--label-secondary);
+}
+
+.recipe-chip[aria-pressed="true"] {
+  background: var(--surface-raised);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+.recipe-chip[aria-pressed="false"] {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.recipe-chip.is-pressed {
+  transform: scale(0.95);
+}
+
+/* The outcome of a copy lands on the card's foot: what happened on the left,
+   how big it was on the right. */
+.page-receipt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  min-height: 1.25rem;
+}
+
+/* Work in progress is AI work, so the card's top edge runs the spectrum while
+   a copy is being made. Without :has() the status line still says so. */
+.page-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: var(--spectrum);
+  background-size: 200% 100%;
+  opacity: 0;
+  transition: opacity var(--t-base);
+  pointer-events: none;
+}
+
+.page-card:has(.status.processing)::before {
+  opacity: 1;
+  animation: unshell-sweep 1.2s linear infinite;
+}
+
+@keyframes unshell-sweep {
+  from { background-position: 0% 0; }
+  to { background-position: -200% 0; }
+}
+
+/* ==========================================================================
+   BUTTONS
+   ========================================================================== */
+
+.primary-btn,
+.secondary-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-sm);
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.625rem 1.25rem;
+  border: none;
+  border-radius: var(--r-md);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  cursor: pointer;
+  overflow: hidden;
+  /* Press feedback is instant and lands on pointer-down (motion.js pressable) */
+  transition: background-color var(--t-fast), color var(--t-fast),
+    box-shadow var(--t-fast), transform var(--t-fast), filter var(--t-fast);
+}
+
+/* The one heavy key: solid ink, taller than anything else that can be
+   pressed, so there is never a question which one copies the page. */
+.primary-btn {
+  background: var(--action-color);
+  color: var(--action-label);
+}
+
+.action-buttons > .convert-action > .primary-btn,
+.action-buttons > .telegram-action > .primary-btn,
+.chat-action > .primary-btn,
+.multi-tab-actions > .primary-btn {
+  min-height: 3.25rem;
+  font-weight: 600;
+}
+
+.primary-btn:hover {
+  background: var(--action-hover);
+}
+
+.primary-btn.is-pressed {
+  transform: scale(0.98);
+  background: var(--action-pressed);
+}
+
+.primary-btn:disabled,
+.secondary-btn:disabled,
+.key:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.secondary-btn {
+  background: var(--secondary-fill);
+  color: var(--text-color);
+}
+
+.secondary-btn:hover {
+  background: var(--secondary-hover);
+}
+
+.secondary-btn.is-pressed {
+  transform: scale(0.975);
+  background: var(--fill-secondary);
+}
+
+.primary-btn.success,
+.secondary-btn.success {
+  background: var(--success-color);
+  color: #fff;
+}
+
+.dark-theme .primary-btn.success,
+.dark-theme .secondary-btn.success {
+  color: #121317;
+}
+
+.btn-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+}
+
+.btn-text {
+  white-space: nowrap;
+}
+
+.convert-action.hidden {
+  display: none !important;
+}
+
+/* Keys ----------------------------------------------------------------- */
+
+/* Equal keys in one row; a key that does not apply here is display:none and
+   the others share its width. */
+.key-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: var(--gap-sm);
+}
+
+.key {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.375rem;
+  min-height: 3.5rem;
+  padding: 0.625rem 0.75rem 0.5625rem;
+  border: none;
+  border-radius: var(--r-md);
+  background: var(--secondary-fill);
+  color: var(--text-color);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--t-fast), transform var(--t-fast);
+}
+
+.key:hover {
+  background: var(--secondary-hover);
+}
+
+.key.is-pressed {
+  transform: scale(0.97);
+  background: var(--fill-secondary);
+}
+
+.key-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+  color: var(--label-secondary);
+}
+
+.key-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+}
+
+/* On a conversation the page copy is one level down, in the chat key's menu:
+   the rendered page is a slice of the thread, not the thread. */
+#mainView[data-mode="chat"] #convertOverrideBtn,
+#mainView[data-mode="telegram"] #convertOverrideBtn {
+  display: none;
+}
+
+/* Chat action ---------------------------------------------------------- */
+
+.chat-action {
+  position: relative;
+  display: flex;
+}
+
+.chat-action.hidden {
+  display: none !important;
+}
+
+.chat-btn {
+  flex: 1;
+}
+
+/* The page copy on a conversation is a key of its own, and only there. */
+#mainView:not([data-mode="chat"]) #chatPageFallbackBtn {
+  display: none;
+}
+
+/* ==========================================================================
+   STATUS
+   ==========================================================================
+   A mark and a short line, in Geist Mono, on the card's foot. The same text
+   is the aria-live announcement, so what is read and what is seen agree. */
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.3;
+  color: var(--label-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status:not(:empty)::before {
+  content: "";
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3C/svg%3E");
+}
+
+.status.success {
+  color: var(--success-color);
+}
+
+/* A line that carries a notice (what a chat copy took instead of the chosen
+   range) is read in full, not cut to one line. */
+.status.has-notice {
+  white-space: normal;
+  align-items: flex-start;
+}
+
+.status.success::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m8.5 12.2 2.4 2.4 4.6-5'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m8.5 12.2 2.4 2.4 4.6-5'/%3E%3C/svg%3E");
+}
+
+.status.error {
+  color: var(--error-color);
+  white-space: normal;
+}
+
+.status.error::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.2M12 16.3v.2'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.2M12 16.3v.2'/%3E%3C/svg%3E");
+}
+
+.status.processing {
+  color: var(--text-color);
+}
+
+.status.processing::before {
+  background: var(--spectrum-conic);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M12 3a9 9 0 1 0 9 9'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M12 3a9 9 0 1 0 9 9'/%3E%3C/svg%3E");
+  animation: unshell-spin 900ms linear infinite;
+}
+
+@keyframes unshell-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status.processing::before,
+  .page-card:has(.status.processing)::before {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   TOKEN COUNTER
+   ==========================================================================
+   The number and its unit in Geist Mono, at the right of the card's foot. */
+
+.token-counter {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3125rem;
+  flex: none;
+  margin-left: auto;
+}
+
+.token-counter.hidden {
+  display: none !important;
+}
+
+.token-value {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-color);
+}
+
+.token-label {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--label-tertiary);
+}
+
+
+/* ==========================================================================
+   SETTINGS
+   ========================================================================== */
+
+.settings-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--gap-lg) var(--edge) var(--gap-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+  /* Scroll edge effect: content dissolves where it meets the header instead
+     of being cut mid-row. */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 0.75rem,
+    #000 calc(100% - 0.5rem),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 0.75rem,
+    #000 calc(100% - 0.5rem),
+    transparent 100%
+  );
+}
+
+.settings-content::-webkit-scrollbar {
+  width: 0.375rem;
+}
+
+.settings-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-content::-webkit-scrollbar-thumb {
+  background: var(--fill-secondary);
+  border-radius: var(--r-pill);
+}
+
+.settings-content::-webkit-scrollbar-thumb:hover {
+  background: var(--label-tertiary);
+}
+
+/* Five sections, each one card holding a list of rows: the name on the left,
+   the control on the right, the explanation under the name. A site's own
+   options open under its row only while that site's mode is on. */
+.settings-content {
+  gap: var(--gap-xl);
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.settings-section-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-color);
+  padding: 0 0.125rem;
+}
+
+.settings-section-lede {
+  margin-top: -0.25rem;
+  padding: 0 0.125rem 0.125rem;
+  font-size: 0.75rem;
+  color: var(--label-secondary);
+}
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
+  border: 1px solid var(--separator);
+  overflow: hidden;
+}
+
+/* A hairline between rows, the way a grouped list draws them. */
+.settings-list > * + * {
+  border-top: 1px solid var(--separator);
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-md);
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0.5rem var(--gap-lg);
+}
+
+label.setting-row {
+  cursor: pointer;
+}
+
+/* A control too wide for the row's right edge goes under its name. */
+.setting-row-stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--gap-sm);
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.setting-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--text-color);
+}
+
+.setting-hint {
+  font-size: 0.71875rem;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0;
+  color: var(--label-secondary);
+}
+
+/* Values are there to be read off and compared (the build id), so they are
+   monospaced and selectable. */
+.setting-value {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--label-secondary);
+  user-select: text;
+}
+
+code.setting-value {
+  padding: 0.125rem 0.4375rem;
+  border-radius: var(--r-xs);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--separator);
+  color: var(--text-color);
+  font-size: 0.6875rem;
+}
+
+.setting-option.is-pressed {
+  background: var(--fill-tertiary);
+}
+
+/* Native controls left anywhere else keep the ink accent. */
+input[type="radio"],
+input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  flex: none;
+  accent-color: var(--action-color);
+  cursor: pointer;
+}
+
+/* Switch ---------------------------------------------------------------- */
+
+/* A native checkbox drawn as a switch. The knob is a background gradient,
+   not a pseudo-element: Firefox does not render ::before on an input. On is
+   the ink track with the knob at the right; off is the pale track with the
+   knob at the left, so the state reads from position as well as colour. */
+input.switch {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 2.25rem;
+  height: 1.375rem;
+  border-radius: var(--r-pill);
+  background-color: var(--fill-secondary);
+  background-image: radial-gradient(circle, #ffffff 0 0.5rem, transparent 0.5625rem);
+  background-size: 1.375rem 1.375rem;
+  background-repeat: no-repeat;
+  background-position: left center;
+  box-shadow: inset 0 0 0 1px var(--separator);
+  transition: background-color var(--t-fast), background-position var(--t-base);
+}
+
+input.switch:checked {
+  background-color: var(--action-color);
+  background-image: radial-gradient(circle, var(--action-label) 0 0.5rem, transparent 0.5625rem);
+  background-position: right center;
+  box-shadow: none;
+}
+
+input.switch.switch-sm {
+  width: 1.875rem;
+  height: 1.125rem;
+  background-image: radial-gradient(circle, #ffffff 0 0.40625rem, transparent 0.46875rem);
+  background-size: 1.125rem 1.125rem;
+}
+
+input.switch.switch-sm:checked {
+  background-image: radial-gradient(circle, var(--action-label) 0 0.40625rem, transparent 0.46875rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  input.switch {
+    transition: none;
+  }
+}
+
+/* Segmented radios ------------------------------------------------------ */
+
+/* Real radios, so the arrow keys move the choice; each one covers its own
+   segment, transparent, and the segment under it shows the state. */
+.setting-segmented {
+  display: flex;
+  flex: none;
+  gap: 0.125rem;
+  padding: 0.1875rem;
+  border-radius: var(--r-pill);
+  background: var(--fill-tertiary);
+}
+
+.setting-row-stacked .setting-segmented label {
+  flex: 1;
+}
+
+.setting-segmented label {
+  position: relative;
+  display: flex;
+  cursor: pointer;
+}
+
+.setting-segmented input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.setting-segmented span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--r-pill);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--label-secondary);
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+
+.setting-segmented input:checked + span {
+  background: var(--surface-raised);
+  color: var(--text-color);
+  box-shadow: 0 0 0 1px var(--separator), var(--shadow-1);
+}
+
+.setting-segmented input:focus-visible + span {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
+}
+
+/* Chats: the Days row only for the recent-days range, neither count for the
+   whole chat. The exchange count stays for recent days, as the cut used for a
+   chat with no dates. */
+.settings-list:has(input[name="chatRangeMode"][value="exchanges"]:checked) .chat-days-setting,
+.settings-list:has(input[name="chatRangeMode"][value="all"]:checked) .chat-days-setting,
+.settings-list:has(input[name="chatRangeMode"][value="all"]:checked) .chat-exchanges-setting {
+  display: none;
+}
+
+/* A site's own options --------------------------------------------------- */
+
+.setting-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.setting-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0 var(--gap-lg) 0.75rem calc(var(--gap-lg) + 0.75rem);
+}
+
+/* Closed while the switch above them is off. Without :has() they stay open,
+   which costs height, not function. */
+.setting-block:has(> .setting-row .switch:not(:checked)) > .setting-sub {
+  display: none;
+}
+
+.setting-sub-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-sm);
+  min-height: 2rem;
+  font-size: 0.78125rem;
+  color: var(--label-secondary);
+  cursor: pointer;
+}
+
+.setting-sub-row > span {
+  min-width: 0;
+}
+
+.setting-sub .secondary-btn {
+  width: auto;
+  align-self: flex-start;
+  min-height: 2.25rem;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem;
+}
+
+/* Theme switcher ------------------------------------------------------- */
+
+.theme-switcher {
+  display: flex;
+  gap: 0.125rem;
+  padding: 0.1875rem;
+  border-radius: var(--r-pill);
+  background: var(--fill-tertiary);
+}
+
+.theme-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.625rem;
+  border: none;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--label-secondary);
+  cursor: pointer;
+  transition: color var(--t-fast), background-color var(--t-fast),
+    transform var(--t-fast);
+}
+
+.theme-btn:hover {
+  color: var(--text-color);
+}
+
+.theme-btn.active {
+  background: var(--surface-raised);
+  color: var(--text-color);
+  box-shadow: 0 0 0 1px var(--separator), var(--shadow-1);
+}
+
+.theme-btn.is-pressed {
+  transform: scale(0.94);
+}
+
+.theme-icon-small {
+  width: 0.9375rem;
+  height: 0.9375rem;
+}
+
+.shortcut-link {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.shortcut-link:hover {
+  text-decoration: underline;
+}
+
+/* Metadata format ------------------------------------------------------ */
+
+.metadata-format-container {
+  gap: var(--gap-sm);
+}
+
+.metadata-format-container.hidden {
+  display: none !important;
+}
+
+.metadata-format-input {
+  width: 100%;
+  padding: var(--gap-sm) 0.625rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-sm);
+  background: var(--surface-color);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.55;
+  resize: vertical;
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.metadata-format-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-tint);
+}
+
+.metadata-format-input::placeholder {
+  color: var(--label-tertiary);
+}
+
+.reset-btn,
+.token-limit-select {
+  padding: 0.3125rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-pill);
+  background: var(--surface-raised);
+  color: var(--text-color);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--t-fast), border-color var(--t-fast),
+    transform var(--t-fast);
+}
+
+.reset-btn {
+  align-self: flex-start;
+}
+
+.reset-btn:hover,
+.token-limit-select:hover {
+  background: var(--fill-tertiary);
+}
+
+.reset-btn.is-pressed {
+  transform: scale(0.96);
+  background: var(--fill-secondary);
+}
+
+.token-limit-select {
+  flex: none;
+}
+
+.token-limit-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-tint);
+}
+
+/* ==========================================================================
+   ACCESSIBILITY PREFERENCES
+   ========================================================================== */
+
+/* Reduced motion keeps the feedback, drops the travel: springs are disabled in
+   motion.js and the remaining cues become short cross-fades. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 120ms !important;
+  }
+
+  /* The views cross-fade in place rather than sliding */
+  .view {
+    transition: opacity 140ms ease;
+  }
+
+  .primary-btn.is-pressed,
+  .secondary-btn.is-pressed,
+  .icon-btn.is-pressed,
+  .theme-btn.is-pressed,
+  .reset-btn.is-pressed,
+  .key.is-pressed,
+  .recipe-chip.is-pressed {
+    transform: none;
+    filter: brightness(0.94);
+  }
+}
+
+/* Fully solid: drop the last of the blur and the soft glow. */
+@media (prefers-reduced-transparency: reduce) {
+  .header {
+    background: var(--surface-color);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  /* A mask on a solid surface is not a transparency effect, and deleting it
+     left a razor-sharp mid-row clip with nothing in its place, so the source
+     list keeps its scroll edge here. */
+  .settings-content {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .page-card::before {
+    display: none;
+  }
+}
+
+/* Near-solid surfaces with defined borders, and no decoration competing with
+   the text. */
+@media (prefers-contrast: more) {
+  :root {
+    --label-secondary: #2b2d31;
+    --label-tertiary: #45474d;
+    --separator: rgba(18, 19, 23, 0.4);
+    --border-color: rgba(18, 19, 23, 0.6);
+  }
+
+  .dark-theme {
+    --label-secondary: #e2e4e8;
+    --label-tertiary: #c4c7cc;
+    --separator: rgba(255, 255, 255, 0.42);
+    --border-color: rgba(255, 255, 255, 0.6);
+  }
+
+  .header,
+  .settings-list {
+    background: var(--surface-color);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border: 1px solid var(--border-color);
+  }
+
+  .secondary-btn,
+  .key,
+  .page-card {
+    border: 1px solid var(--border-color);
+  }
+
+}
+
+/* Telegram action ------------------------------------------------------- */
+
+.telegram-action {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.telegram-action.hidden {
+  display: none !important;
+}
+
+/* Telegram's own blue, not the ink key: the button belongs to the
+   conversation it copies, and its label names that conversation, so it reads
+   as "this one" rather than as a second generic copy. Flat, like every other
+   key. */
+.primary-btn.telegram-btn {
+  background: #2aabee;
+  color: #fff;
+}
+
+.primary-btn.telegram-btn:hover {
+  background: #229ad8;
+}
+
+.primary-btn.telegram-btn.is-pressed {
+  background: #1d8bc4;
+}
+
+/* A long chat name uses the width it has, then elides — it may not grow the
+   popup or wrap the button. */
+.telegram-btn .btn-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Both limits are visible at rest. They were behind a dropdown, which hid the
+   date range behind a click and then ran off the bottom of the popup — and
+   there is room to simply show them. */
+.telegram-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  padding: var(--gap-sm) var(--gap-md);
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
+  border: 1px solid var(--separator);
+}
+
+.telegram-row,
+.card-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+}
+
+.telegram-row-label,
+.card-row-label {
+  flex: none;
+  width: 4.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--label-tertiary);
+}
+
+.telegram-segmented,
+.card-segmented {
+  position: relative;
+  display: flex;
+  flex: 1;
+  gap: 0.125rem;
+  padding: 0.1875rem;
+  border-radius: var(--r-pill);
+  background: var(--fill-tertiary);
+}
+
+.telegram-segment,
+.card-segment {
+  flex: 1;
+  padding: 0.25rem 0;
+  border: none;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--label-secondary);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+
+.telegram-segment.is-selected,
+.card-segment.is-selected {
+  background: var(--surface-raised);
+  color: var(--label-primary);
+  box-shadow: 0 0 0 1px var(--separator), var(--shadow-1);
+}
+
+/* The two dates share the row evenly, so neither can push the other out. */
+.telegram-date-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-radius: var(--r-pill);
+  background: var(--surface-color);
+  box-shadow: inset 0 0 0 1px var(--separator);
+  color: var(--label-primary);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.telegram-dash {
+  flex: none;
+  color: var(--label-tertiary);
+}
+
+.telegram-date-clear {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-pill);
+  background: var(--fill-tertiary);
+  color: var(--label-secondary);
+  font-size: 0.875rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.telegram-date-clear:hover {
+  background: var(--fill-secondary);
+}
+
+/* The custom-date row only appears when "Dates" is chosen, so the common case
+   costs no height at all. */
+.telegram-custom-dates.hidden {
+  display: none !important;
+}
+
+.telegram-date-input::placeholder {
+  color: var(--label-tertiary);
+}
+
+/* An icon inside a control is decoration, not a target. Firefox delivers
+   pointerdown and mouseup to the <svg> rather than to the button, and when a
+   control contains nothing but an icon — the theme switcher — no click event is
+   produced at all, so the button looks alive and does nothing. Making the
+   graphics transparent to the pointer hands both events back to the button. */
+button svg,
+button img,
+.theme-btn .theme-icon-small,
+.btn-icon,
+.key-icon,
+.theme-icon-small {
+  pointer-events: none;
+}

@@ -1,0 +1,15 @@
+{
+  "name": "unshell",
+  "version": "2.5.1",
+  "description": "Convert any webpage to clean Markdown for ChatGPT, Claude & Gemini. Multi-tab copy, token counter. 100% private.",
+  "private": true,
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "playwright": "^1.63.0",
+    "web-ext": "^10.6.0"
+  }
+}
