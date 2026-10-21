@@ -50,6 +50,26 @@ jobs:
         fi
         echo "All build artifacts created successfully"
 
+    # The add-on ID is the add-on: AMO signs and updates by it. It is declared
+    # once, in extension/manifest.json, so the Firefox package cannot ship one
+    # the source does not say.
+    - name: Verify the Firefox package keeps the add-on ID from extension/manifest.json
+      run: |
+        VERSION=$(jq -r '.version' extension/manifest.json)
+        mkdir -p /tmp/firefox-id
+        unzip -q -o "dist/ScrapLLM-Firefox-v${VERSION}.zip" manifest.json -d /tmp/firefox-id
+        want=$(jq -c '.browser_specific_settings' extension/manifest.json)
+        got=$(jq -c '.browser_specific_settings' /tmp/firefox-id/manifest.json)
+        if [ "$want" != "$got" ]; then
+          echo "::error::Firefox package has browser_specific_settings $got, extension/manifest.json has $want"
+          exit 1
+        fi
+        if grep -nE '"id": *"[^"]+@[^"]+"' scripts/build.sh; then
+          echo "::error::scripts/build.sh restates the add-on ID; it must come from extension/manifest.json only"
+          exit 1
+        fi
+        echo "Firefox package declares $(jq -r '.browser_specific_settings.gecko.id' extension/manifest.json)"
+
     - name: Validate Chrome manifest
       run: |
         echo "Validating Chrome manifest.json..."
