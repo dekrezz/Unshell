@@ -1,13 +1,13 @@
 # Notes for AMO reviewers
 
-For the submission of ScrapLLM (`scrapllm@dekrezz.dev`).
+For the submission of Unshell (`scrapllm@dekrezz.dev`).
 
 ## Build
 
 ```bash
-git clone https://github.com/dekrezz/ScrapLLM.git
-cd ScrapLLM
-bash scripts/build.sh firefox      # -> dist/ScrapLLM-Firefox-v<version>.zip
+git clone https://github.com/dekrezz/Unshell.git
+cd Unshell
+bash scripts/build.sh firefox      # -> dist/Unshell-Firefox-v<version>.zip
 ```
 
 The command reproduces the uploaded package exactly. No minifier, bundler,

@@ -1,4 +1,4 @@
-# ScrapLLM — contributor and agent guide
+# Unshell — contributor and agent guide
 
 Everything an agent (or a person) needs to change this extension safely: how it is put together, what to run to prove a change works, and the rules that are not negotiable.
 

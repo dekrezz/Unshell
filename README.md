@@ -1,8 +1,10 @@
 <p align="center">
-  <img src="extension/icons/icon128.png" alt="ScrapLLM" width="128" />
+  <img src="extension/icons/icon128.png" alt="Unshell" width="128" />
 </p>
 
-<h1 align="center">ScrapLLM</h1>
+<h1 align="center">Unshell</h1>
+
+<p align="center"><em>Formerly called ScrapLLM.</em></p>
 
 <p align="center">
   <strong>Browser extension that turns web pages and chats into clean Markdown for LLMs</strong>
@@ -10,7 +12,7 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-green.svg" /></a>
-  <a href="https://github.com/dekrezz/ScrapLLM/releases"><img alt="Version" src="https://img.shields.io/github/manifest-json/v/dekrezz/ScrapLLM?filename=extension%2Fmanifest.json&label=version&color=blue" /></a>
+  <a href="https://github.com/dekrezz/Unshell/releases"><img alt="Version" src="https://img.shields.io/github/manifest-json/v/dekrezz/Unshell?filename=extension%2Fmanifest.json&label=version&color=blue" /></a>
   <img alt="Manifest V3" src="https://img.shields.io/badge/manifest-V3-111111.svg" />
   <img alt="Chrome and Firefox" src="https://img.shields.io/badge/browsers-Chrome%20%7C%20Firefox-4d6bfe.svg" />
 </p>
@@ -29,17 +31,17 @@
 
 ## Start here
 
-**What it is.** ScrapLLM turns whatever is on your screen into Markdown you can paste into ChatGPT, Claude, Gemini or any other LLM. One click copies a page, one copies a highlighted fragment, one copies a whole chat transcript. It runs in Chrome and Firefox.
+**What it is.** Unshell turns whatever is on your screen into Markdown you can paste into ChatGPT, Claude, Gemini or any other LLM. One click copies a page, one copies a highlighted fragment, one copies a whole chat transcript. It runs in Chrome and Firefox.
 
 **What stays private.** Conversion happens in your browser. There is no account, no telemetry, and page content is never sent anywhere. What does touch the network is listed under [Privacy and permissions](#privacy-and-permissions): the optional token counter, **Research**, and the extractors that read a site's own API instead of its rendered page.
 
-**You need:** Chrome or Firefox, plus Git, `bash` and `zip` to build the package from source. Packaged builds are also attached to [Releases](https://github.com/dekrezz/ScrapLLM/releases).
+**You need:** Chrome or Firefox, plus Git, `bash` and `zip` to build the package from source. Packaged builds are also attached to [Releases](https://github.com/dekrezz/Unshell/releases).
 
 ### 1. Build it (one minute)
 
 ```bash
-git clone https://github.com/dekrezz/ScrapLLM.git
-cd ScrapLLM
+git clone https://github.com/dekrezz/Unshell.git
+cd Unshell
 bash scripts/build.sh all          # or: make chrome / make firefox
 ```
 
@@ -49,7 +51,7 @@ Packages land in `dist/`.
 
 | Browser | Steps |
 |---|---|
-| Chrome | `chrome://extensions` → Developer mode → Load unpacked → the extracted `dist/ScrapLLM-Chrome-*.zip` |
+| Chrome | `chrome://extensions` → Developer mode → Load unpacked → the extracted `dist/Unshell-Chrome-*.zip` |
 | Firefox | `about:debugging#/runtime/this-firefox` → Load Temporary Add-on → `manifest.json` from the extracted Firefox package |
 
 Release Firefox only installs signed add-ons permanently. For a permanent unsigned install use Developer Edition, Nightly or ESR with `xpinstall.signatures.required=false`.
@@ -60,7 +62,7 @@ Open any page and press `Alt+Shift+M`, or click the toolbar button and pick an a
 
 ---
 
-ScrapLLM is a derivative work of LLMFeeder by Jatin K Malik (see [License](#license)). It uses Mozilla Readability to find the article and Turndown to write the Markdown, and adds extractors for the sites where a generic conversion loses the point.
+Unshell is a derivative work of LLMFeeder by Jatin K Malik (see [License](#license)). It uses Mozilla Readability to find the article and Turndown to write the Markdown, and adds extractors for the sites where a generic conversion loses the point.
 
 ---
 
@@ -114,8 +116,8 @@ ScrapLLM is a derivative work of LLMFeeder by Jatin K Malik (see [License](#lice
 ## Quick start
 
 ```bash
-git clone https://github.com/dekrezz/ScrapLLM.git
-cd ScrapLLM
+git clone https://github.com/dekrezz/Unshell.git
+cd Unshell
 bash scripts/build.sh all
 ```
 
@@ -126,7 +128,7 @@ bash scripts/build.sh chrome | firefox | source | all
 bash scripts/build.sh --version 2.3.0 all
 ```
 
-The output files are `dist/ScrapLLM-Chrome-v<version>.zip`, `dist/ScrapLLM-Firefox-v<version>.zip` and `dist/ScrapLLM-Source-v<version>.zip`. `make chrome`, `make firefox`, `make source` and `make all` call the same script. Load the result as shown in [Start here](#start-here).
+The output files are `dist/Unshell-Chrome-v<version>.zip`, `dist/Unshell-Firefox-v<version>.zip` and `dist/Unshell-Source-v<version>.zip`. `make chrome`, `make firefox`, `make source` and `make all` call the same script. Load the result as shown in [Start here](#start-here).
 
 ---
 
@@ -200,7 +202,7 @@ Whenever a source ends without a capture (skipped at a wall, dropped by the filt
 
 | Action | Default |
 |--------|---------|
-| Open ScrapLLM | `Alt+Shift+L` |
+| Open Unshell | `Alt+Shift+L` |
 | Convert & copy | `Alt+Shift+M` |
 | Download Markdown | `Alt+Shift+D` |
 | Download tabs as ZIP | `Alt+Shift+Z` |
@@ -299,4 +301,4 @@ Packages land in `dist/`. The Firefox build only copies files and rewrites two m
 
 ## License
 
-MIT. Copyright 2024-2026 Jatin K Malik (original LLMFeeder) and 2026 dekrezz (ScrapLLM, derivative work). See [LICENSE](LICENSE).
+MIT. Copyright 2024-2026 Jatin K Malik (original LLMFeeder) and 2026 dekrezz (Unshell, formerly ScrapLLM, derivative work). See [LICENSE](LICENSE).
