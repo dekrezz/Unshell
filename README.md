@@ -236,18 +236,19 @@ Page content is never sent anywhere. The network is touched in these cases only:
 
 - **Token counter (optional):** fetches static tokenizer data from `tiktoken.pages.dev` once and caches it.
 - **Research:** sends your question to DuckDuckGo (`html.duckduckgo.com`, falling back to `lite.duckduckgo.com`) to find sources, then reads each accepted source itself, without your cookies. Rate limiting, a blank result page and changed markup are reported as distinct, specific errors rather than as an empty file.
+- **The page card's icon:** Chrome serves it from its own favicon cache (the `favicon` permission), with no request. Firefox has no such cache for extensions, so the popup shows the icon address Firefox reports for the tab, which can be a request to the site you are on.
 - **Site-specific extractors:** on Reddit, GitHub and YouTube, and for ChatGPT and Claude transcripts, the extractor calls the site's own endpoints instead of reading the rendered page, as described under [Site-aware extraction](#site-aware-extraction).
 
 Declared in `extension/manifest.json`:
 
 | Kind | Entries |
 |---|---|
-| Permissions | `activeTab`, `tabs`, `clipboardWrite`, `storage`, `scripting`, `contextMenus`, `menus`, `offscreen` |
+| Permissions | `activeTab`, `tabs`, `clipboardWrite`, `storage`, `favicon` (Chrome only), `scripting`, `contextMenus`, `menus`, `offscreen` |
 | Required hosts | `https://tiktoken.pages.dev/*`, `https://html.duckduckgo.com/*`, `https://lite.duckduckgo.com/*` |
 | Optional hosts | `*://*/*`, requested at run time for quiet Research capture |
 | Firefox data collection | `searchTerms` (your Research question) |
 
-The build drops the Chrome-only `offscreen` permission from the Firefox package. Notes for add-on reviewers, including the status of the bundled libraries, are in [REVIEWERS.md](REVIEWERS.md).
+The build drops the Chrome-only `offscreen` and `favicon` permissions from the Firefox package. Notes for add-on reviewers, including the status of the bundled libraries, are in [REVIEWERS.md](REVIEWERS.md).
 
 ---
 

@@ -757,6 +757,28 @@ function renderPage(tab) {
   const title = (tab.title || "").trim();
   pageTitle.textContent = title || host || "This page";
   pageTitle.title = title;
+  renderPageIcon(tab);
+}
+
+const IS_FIREFOX = navigator.userAgent.toLowerCase().includes("firefox");
+
+// The site's own icon replaces the initial once it has actually loaded; until
+// then, and on a page with no icon, the initial is what the tile shows.
+function renderPageIcon(tab) {
+  const source = UnshellPageIcon.sourceFor(tab, {
+    firefox: IS_FIREFOX,
+    getURL: (path) => browserAPI.runtime.getURL(path)
+  });
+  if (!source) return;
+  const icon = new Image(UnshellPageIcon.SIZE, UnshellPageIcon.SIZE);
+  icon.alt = "";
+  icon.decoding = "async";
+  icon.addEventListener("load", () => {
+    if (mainView.dataset.mode === "multi") return;
+    pageGlyph.replaceChildren(icon);
+    pageGlyph.classList.add("has-icon");
+  });
+  icon.src = source;
 }
 
 async function initPageCard() {
@@ -773,6 +795,7 @@ async function initPageCard() {
 const PAGE_TABS_SHOWN = 4;
 
 function renderPageTabs(tabs) {
+  pageGlyph.classList.remove("has-icon");
   pageGlyph.textContent = String(tabs.length);
   pageHost.textContent = "selected tabs";
   pageTitle.textContent = `${tabs.length} tabs, merged into one document`;

@@ -103,6 +103,7 @@ build_chrome() {
   cp "$EXT_DIR/offscreen.html" "$CHROME_DIR/"
   cp "$EXT_DIR/offscreen.js" "$CHROME_DIR/"
   cp "$EXT_DIR/styles.css" "$CHROME_DIR/"
+  cp "$EXT_DIR/page-icon.js" "$CHROME_DIR/"
   cp "$EXT_DIR/token-counter.js" "$CHROME_DIR/" 2>/dev/null || echo "Warning: token-counter.js not found"
   
   # Create directories and copy additional files
@@ -184,6 +185,7 @@ build_firefox() {
   cp "$EXT_DIR/source-quality.js" "$FIREFOX_DIR/"
   cp "$EXT_DIR/quiet-capture.js" "$FIREFOX_DIR/"
   cp "$EXT_DIR/styles.css" "$FIREFOX_DIR/"
+  cp "$EXT_DIR/page-icon.js" "$FIREFOX_DIR/"
   cp "$EXT_DIR/token-counter.js" "$FIREFOX_DIR/" 2>/dev/null || echo "Warning: token-counter.js not found"
   
   # Create directories and copy additional files
@@ -201,11 +203,13 @@ build_firefox() {
     # convert-core.js load there and fetched research pages are parsed in
     # place. There is no offscreen API in Firefox, and none is needed, so the
     # "offscreen" permission is stripped rather than shipped as a warning.
+    # "favicon" is Chrome's favicon cache (page-icon.js); Firefox has none and
+    # reports a tab's icon on the tab, so that permission goes too.
     # browser_specific_settings (the add-on ID, the minimum version, the data
     # collection declaration) is kept from extension/manifest.json as it is:
     # declared once, so the package cannot carry an ID the source does not.
     jq '
-    .permissions = (.permissions - ["offscreen"]) |
+    .permissions = (.permissions - ["offscreen", "favicon"]) |
     if has("background") then
       .background = {
         "scripts": ["libs/jszip.min.js", "libs/readability.js", "libs/turndown.js", "convert-core.js", "multi-tab-utils.js", "settings.js", "search.js", "quiet-capture.js", "source-quality.js", "research.js", "background.js"]
@@ -220,6 +224,7 @@ build_firefox() {
     # This is a basic substitution but might not work for all cases
     sed -i.bak 's/"service_worker": "background.js",\s*"type": "module"/"scripts": ["libs\/jszip.min.js", "libs\/readability.js", "libs\/turndown.js", "convert-core.js", "multi-tab-utils.js", "settings.js", "search.js", "quiet-capture.js", "source-quality.js", "research.js", "background.js"]/' "$FIREFOX_DIR/manifest.json" || true
     sed -i.bak '/"offscreen"/d' "$FIREFOX_DIR/manifest.json" || true
+    sed -i.bak '/"favicon"/d' "$FIREFOX_DIR/manifest.json" || true
     rm -f "$FIREFOX_DIR/manifest.json.bak" 2>/dev/null || true
   fi
   
@@ -268,6 +273,7 @@ build_source() {
   cp "$EXT_DIR/offscreen.html" "$SOURCE_DIR/"
   cp "$EXT_DIR/offscreen.js" "$SOURCE_DIR/"
   cp "$EXT_DIR/styles.css" "$SOURCE_DIR/"
+  cp "$EXT_DIR/page-icon.js" "$SOURCE_DIR/"
   cp "$EXT_DIR/token-counter.js" "$SOURCE_DIR/" 2>/dev/null || echo "Warning: token-counter.js not found"
   cp "$EXT_DIR/manifest.json" "$SOURCE_DIR/"
   

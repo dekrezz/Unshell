@@ -574,6 +574,19 @@ a.icon-btn {
   content: "·";
 }
 
+/* The site's own icon, on a white tile in both themes: favicons are drawn for
+   a light tab strip, and a dark one disappears on the ink tile. */
+.page-glyph.has-icon {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(18, 19, 23, 0.1);
+}
+
+.page-glyph img {
+  width: 1.125rem;
+  height: 1.125rem;
+  object-fit: contain;
+}
+
 .page-host {
   flex: 1;
   min-width: 0;
