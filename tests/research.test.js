@@ -1049,7 +1049,7 @@ describe('ScrapLLMResearch document builder', () => {
       convert: async (tab) => ({ success: true, markdown: `Body of ${tab.url}`, tokenCount: 5, metadata: {} })
     });
 
-    const match = doc.filename.match(/^scrapllm-research-(.+)-(\d{4}-\d{2}-\d{2})\.md$/);
+    const match = doc.filename.match(/^unshell-research-(.+)-(\d{4}-\d{2}-\d{2})\.md$/);
     expect(match).not.toBeNull();
     expect(match[1]).toBe('how_do_apple_style_spring_animations_act');
     expect(match[1]).toHaveLength(40);
