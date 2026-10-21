@@ -1,6 +1,6 @@
 # Notes for AMO reviewers
 
-For the listed submission of ScrapLLM (`scrapllm@dekrezz.github.io`).
+For the submission of ScrapLLM (`scrapllm@dekrezz.dev`).
 
 ## Build
 
