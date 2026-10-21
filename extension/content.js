@@ -204,7 +204,11 @@
           DebugLog.error('Conversion error', error);
 
           let errorMessage = ERROR_MESSAGES.GENERAL;
-          if (error.message.includes('No content')) {
+          if (error && error.verbatim === true) {
+            // An extractor's own sentence, written for the popup: it says what
+            // was missing on this page, which the generic message would hide.
+            errorMessage = error.message;
+          } else if (error.message.includes('No content')) {
             errorMessage = ERROR_MESSAGES.NO_CONTENT;
           } else if (error.message.includes('No text is selected')) {
             errorMessage = ERROR_MESSAGES.NO_SELECTION;
@@ -841,7 +845,10 @@
     // Google AI Mode lives on a search URL. Readability and the full-page path
     // both keep the search shell — tab strip, sign-in, voice prompts — and the
     // hidden source list, whose text is base64 image payloads. The answer and
-    // the source column are a different extractor.
+    // the source column are a different extractor. convertPage throws, saying
+    // what was missing, on an AI Mode thread it cannot read, and returns null
+    // on every other page, an ordinary search above all: it shares the AI
+    // Mode host and path, so null there means "convert it as a page".
     if (settings.contentScope !== 'chat' &&
         settings.contentScope !== 'selection' &&
         typeof ScrapLLMChat !== 'undefined' &&
@@ -865,14 +872,6 @@
             url: aiPage.url || window.location.href,
             title: (aiPage.articleData && aiPage.articleData.title) || document.title
           });
-      }
-      try {
-        if (ScrapLLMChat.inspect().site === 'google-ai') {
-          throw new Error('No AI Mode answer could be extracted from this page');
-        }
-      } catch (error) {
-        if (error && error.message === 'No AI Mode answer could be extracted from this page') throw error;
-        DebugLog.error('Chat probe failed during AI Mode page conversion', error);
       }
     }
 
