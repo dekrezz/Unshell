@@ -121,6 +121,21 @@
       return true;
     }
 
+    // Icon probe: which icon the page declares, for the popup's page card when
+    // the browser has none for the tab.
+    if (request.action === 'getPageIcon') {
+      if (typeof UnshellPageIcon === 'undefined') {
+        sendResponse({ success: false, error: 'page-icon.js is not loaded in this page' });
+        return true;
+      }
+      try {
+        sendResponse({ success: true, icon: UnshellPageIcon.declaredIcon(document, window.location) });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+      return true;
+    }
+
     // Chat probe: does this page hold an LLM conversation?
     if (request.action === 'getChatInfo') {
       try {

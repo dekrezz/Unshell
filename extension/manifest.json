@@ -65,6 +65,7 @@
         "telegram.js",
         "youtube.js",
         "x.js",
+        "page-icon.js",
         "content.js"
       ]
     }

@@ -57,6 +57,7 @@ popup as written.
 |--------|-----------|---------|
 | `convertToMarkdown` | popup/background → content | Run a conversion |
 | `getSelectionInfo` | popup → content | Is there a selection? (drives the Copy Selection button) |
+| `getPageIcon` | popup → content | The icon the page declares, for the page card when the browser has none for the tab |
 | `getChatInfo` | popup → content | Is this a conversation? (drives the Copy Chat button) |
 | `getDebugLogs`, `copyToClipboard`, `downloadMarkdown`, `downloadFile`, `showNotification` | popup → content | Utilities |
 | `scrapllm-research` (port) | popup ⇄ background | Long-lived research channel: `start`, `cancel`, `sync`, `getDocument` up; `snapshot`, `accepted`, `document`, `error` down. Also keeps the MV3 worker alive for the run. |

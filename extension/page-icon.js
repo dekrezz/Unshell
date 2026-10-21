@@ -7,8 +7,12 @@
 // - Firefox has no such endpoint. It reports the tab's icon on the tab itself
 //   (the "tabs" permission): a data: icon is used as it is, an http(s) one is
 //   the address Firefox already loaded for that tab.
-// A browser page, or a tab with no icon, has none, and the card keeps the
-// host's initial.
+// - When the browser has none for the tab (Firefox's favIconUrl is
+//   intermittently missing even while the tab strip shows one, bug 1417721),
+//   or the one it has will not draw, the page is asked which icon it declares,
+//   and that is tried next.
+// A browser page, or a tab with no icon at all, has none, and the card keeps
+// the host's initial.
 
 var UnshellPageIcon = typeof UnshellPageIcon !== 'undefined' ? UnshellPageIcon : (function () {
   const SIZE = 32;
@@ -31,7 +35,46 @@ var UnshellPageIcon = typeof UnshellPageIcon !== 'undefined' ? UnshellPageIcon :
     return '';
   }
 
-  return { SIZE, sourceFor };
+  function isUsableIcon(source) {
+    return /^data:image\//i.test(source || '') || isWebAddress(source);
+  }
+
+  // Every source worth trying, in order and without repeats: the browser's own
+  // icon for the tab, then the icon the page declares.
+  function candidates(tab, options) {
+    const opts = options || {};
+    const list = [];
+    const primary = sourceFor(tab, opts);
+    if (primary) list.push(primary);
+    const declared = opts.pageIcon || '';
+    if (isUsableIcon(declared) && !list.includes(declared)) list.push(declared);
+    return list;
+  }
+
+  // rel="icon" (which "shortcut icon" also is) before an apple-touch-icon; a
+  // page that declares neither still has /favicon.ico at its origin.
+  const ICON_RELS = [/(^|\s)icon(\s|$)/i, /(^|\s)apple-touch-icon(-precomposed)?(\s|$)/i];
+
+  function declaredIcon(doc, location) {
+    const base = location && location.href ? location.href : '';
+    if (!doc || !base) return '';
+    const links = Array.from(doc.querySelectorAll('link[rel][href]'));
+    for (const rel of ICON_RELS) {
+      const link = links.find((candidate) => rel.test(candidate.getAttribute('rel')));
+      if (!link) continue;
+      const href = (link.getAttribute('href') || '').trim();
+      if (/^data:image\//i.test(href)) return href;
+      try {
+        const resolved = new URL(href, base).href;
+        if (isWebAddress(resolved)) return resolved;
+      } catch (error) {
+        // An href that is not an address at all: the next kind of link may be.
+      }
+    }
+    return isWebAddress(base) ? `${new URL(base).origin}/favicon.ico` : '';
+  }
+
+  return { SIZE, sourceFor, candidates, declaredIcon };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {

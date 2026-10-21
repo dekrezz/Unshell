@@ -723,28 +723,48 @@ function renderPage(tab) {
   pageGlyph.textContent = (host || url || "·").charAt(0).toUpperCase();
   const title = (tab.title || "").trim();
   pageTitle.textContent = title || host || "This page";
-  renderPageIcon(tab);
+  renderPageIcon(tab).catch((error) => console.error("Unshell: page icon failed", error));
 }
 
 const IS_FIREFOX = navigator.userAgent.toLowerCase().includes("firefox");
 
-// The site's own icon replaces the initial once it has actually loaded; until
-// then, and on a page with no icon, the initial is what the tile shows.
-function renderPageIcon(tab) {
-  const source = UnshellPageIcon.sourceFor(tab, {
-    firefox: IS_FIREFOX,
-    getURL: (path) => browserAPI.runtime.getURL(path)
+function loadIcon(source) {
+  return new Promise((resolve) => {
+    const icon = new Image(UnshellPageIcon.SIZE, UnshellPageIcon.SIZE);
+    icon.alt = "";
+    icon.decoding = "async";
+    icon.addEventListener("load", () => resolve(icon));
+    icon.addEventListener("error", () => resolve(null));
+    icon.src = source;
   });
-  if (!source) return;
-  const icon = new Image(UnshellPageIcon.SIZE, UnshellPageIcon.SIZE);
-  icon.alt = "";
-  icon.decoding = "async";
-  icon.addEventListener("load", () => {
-    if (mainView.dataset.mode === "multi") return;
+}
+
+async function showFirstIcon(sources, tried) {
+  for (const source of sources) {
+    if (tried.has(source)) continue;
+    tried.add(source);
+    const icon = await loadIcon(source);
+    if (!icon) continue;
+    if (mainView.dataset.mode === "multi") return true;
     pageGlyph.replaceChildren(icon);
     pageGlyph.classList.add("has-icon");
-  });
-  icon.src = source;
+    return true;
+  }
+  return false;
+}
+
+// The site's own icon replaces the initial once one has actually loaded. The
+// browser's icon for the tab is tried first; when it has none or that one
+// will not draw, the page is asked which icon it declares. Until then, and on
+// a page with no icon at all, the tile keeps the initial.
+async function renderPageIcon(tab) {
+  const options = { firefox: IS_FIREFOX, getURL: (path) => browserAPI.runtime.getURL(path) };
+  const tried = new Set();
+  if (await showFirstIcon(UnshellPageIcon.candidates(tab, options), tried)) return;
+  if (!/^https?:/i.test(tab.url || "")) return;
+  const response = await askPage(tab.id, { action: "getPageIcon" });
+  if (!response || !response.success) return;
+  await showFirstIcon(UnshellPageIcon.candidates(tab, Object.assign({}, options, { pageIcon: response.icon })), tried);
 }
 
 async function initPageCard() {
