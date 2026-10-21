@@ -640,13 +640,34 @@ run.
 
 `styles.css` answers `prefers-reduced-motion` (cross-fades, no travel),
 `prefers-reduced-transparency` (solid surfaces, no spectrum glow) and
-`prefers-contrast: more` (near-opaque, bordered, no particle halo). Type is
+`prefers-contrast: more` (near-opaque, bordered). Type is
 Geist and Geist Mono (OFL, `extension/assets/fonts/`, preloaded by
 `popup.html`, `font-display: block` so the popup never paints in a fallback
 first) with size-specific tracking and rem spacing, so the user's text-size
 setting grows the layout. Mono carries labels, counters and section titles.
 `assets/` is copied whole by every target in `scripts/build.sh`; a file added
 there needs no build change, a file added beside it does.
+
+The main view is three bands. On top is the **page card**: the host's initial
+on an ink tile, the host, a mode label, and the title. Below it is **one heavy
+key** that copies. Last comes a **row of equal keys** for the variants: Save .md, the
+opposite scope for this copy only (`#convertOverrideBtn`, Full page or Main
+content), and Selection when there is one.
+
+- **Mode.** `#mainView[data-mode]` is `page`, `chat`, `telegram` or `multi`, set by
+  `setPageMode()`. CSS reads it to hide what does not apply: the scope key on a
+  conversation, the title where the key or the tab list already names the
+  subject, and the Telegram limits off Telegram.
+- **What lands on the card.** The card carries the outcome of a copy (status and token count on its
+  foot) and the Telegram limits. It also carries the recipe chips, which are views of
+  the Formatting checkboxes (`data-setting` is the checkbox id), not
+  settings of their own.
+- **The research sheet.** `.center-section` and `#mainView .header` are what it measures and inerts. Keep
+  those two class names.
+- **Layout.** The popup is a fixed 28rem tall, so the card takes whatever height the
+  state leaves and a new state must fit in it. Settings are grouped into Copy,
+  Sites, Research, Interface and About; a new group goes into the section it
+  is about.
 
 ## Adding a setting
 
