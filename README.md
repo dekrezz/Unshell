@@ -29,6 +29,11 @@
   <a href="#build">Build</a>
 </p>
 
+<p align="center">
+  <img src="docs/popup-light.png" width="320" alt="Unshell in the light theme after copying a documentation page: the page card with its host, title and recipe switches, the result line with the token count, the Copy as Markdown key, and the Save .md and Full page keys" />
+  <img src="docs/popup-dark.png" width="320" alt="Unshell in the dark theme on a ChatGPT conversation: the card marked Chat · ChatGPT, the Copy chat key with its exchange-limit menu, and the Save .md key" />
+</p>
+
 ## Start here
 
 **What it is.** Unshell turns whatever is on your screen into Markdown you can paste into ChatGPT, Claude, Gemini or any other LLM. One click copies a page, one copies a highlighted fragment, one copies a whole chat transcript. It runs in Chrome and Firefox.
