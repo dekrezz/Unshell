@@ -1199,10 +1199,9 @@ a.icon-btn {
   background: var(--label-tertiary);
 }
 
-/* Broad, lightly contrasted cards: a sunken fill and a hairline, no shadow. */
-/* Five sections — Copy, Sites, Research, Interface, About — each a title
-   over the cards it owns, so a setting is found by what it is about rather
-   than by scrolling a flat list in the order the features shipped. */
+/* Five sections, each one card holding a list of rows: the name on the left,
+   the control on the right, the explanation under the name. A site's own
+   options open under its row only while that site's mode is on. */
 .settings-content {
   gap: var(--gap-xl);
 }
@@ -1228,50 +1227,86 @@ a.icon-btn {
   color: var(--label-secondary);
 }
 
-.setting-group {
-  padding: 0.875rem var(--gap-lg);
+.settings-list {
+  display: flex;
+  flex-direction: column;
   border-radius: var(--r-lg);
   background: var(--surface-sunken);
   border: 1px solid var(--separator);
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-sm);
+  overflow: hidden;
 }
 
-.setting-group h3 {
-  margin-bottom: var(--gap-xs);
+/* A hairline between rows, the way a grouped list draws them. */
+.settings-list > * + * {
+  border-top: 1px solid var(--separator);
 }
 
-.setting-option {
+.setting-row {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
-  min-height: 1.75rem;
+  justify-content: space-between;
+  gap: var(--gap-md);
+  min-height: 2.75rem;
   margin: 0;
-  padding: 0.125rem 0;
-  border-radius: var(--r-sm);
+  padding: 0.5rem var(--gap-lg);
+}
+
+label.setting-row {
   cursor: pointer;
 }
 
-.setting-option span {
-  margin: 0;
+/* A control too wide for the row's right edge goes under its name. */
+.setting-row-stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--gap-sm);
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.setting-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+  min-width: 0;
   font-size: 0.8125rem;
-  letter-spacing: -0.003em;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--text-color);
 }
 
-.setting-option.is-pressed span {
-  color: var(--primary-color);
-}
-
-.setting-option small,
-.setting-group > small {
-  font-size: 0.75rem;
-  line-height: 1.5;
+.setting-hint {
+  font-size: 0.71875rem;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0;
   color: var(--label-secondary);
 }
 
-/* Ink controls, the same colour as the primary action: white on the dark
-   canvas, and the browser picks the contrasting tick on its own. */
+/* Values are there to be read off and compared (the build id), so they are
+   monospaced and selectable. */
+.setting-value {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--label-secondary);
+  user-select: text;
+}
+
+code.setting-value {
+  padding: 0.125rem 0.4375rem;
+  border-radius: var(--r-xs);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--separator);
+  color: var(--text-color);
+  font-size: 0.6875rem;
+}
+
+.setting-option.is-pressed {
+  background: var(--fill-tertiary);
+}
+
+/* Native controls left anywhere else keep the ink accent. */
 input[type="radio"],
 input[type="checkbox"] {
   width: 1rem;
@@ -1282,18 +1317,153 @@ input[type="checkbox"] {
   cursor: pointer;
 }
 
-/* Theme switcher ------------------------------------------------------- */
+/* Switch ---------------------------------------------------------------- */
 
-.theme-toggle-row {
+/* A native checkbox drawn as a switch. The knob is a background gradient,
+   not a pseudo-element: Firefox does not render ::before on an input. On is
+   the ink track with the knob at the right; off is the pale track with the
+   knob at the left, so the state reads from position as well as colour. */
+input.switch {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 2.25rem;
+  height: 1.375rem;
+  border-radius: var(--r-pill);
+  background-color: var(--fill-secondary);
+  background-image: radial-gradient(circle, #ffffff 0 0.5rem, transparent 0.5625rem);
+  background-size: 1.375rem 1.375rem;
+  background-repeat: no-repeat;
+  background-position: left center;
+  box-shadow: inset 0 0 0 1px var(--separator);
+  transition: background-color var(--t-fast), background-position var(--t-base);
+}
+
+input.switch:checked {
+  background-color: var(--action-color);
+  background-image: radial-gradient(circle, var(--action-label) 0 0.5rem, transparent 0.5625rem);
+  background-position: right center;
+  box-shadow: none;
+}
+
+input.switch.switch-sm {
+  width: 1.875rem;
+  height: 1.125rem;
+  background-image: radial-gradient(circle, #ffffff 0 0.40625rem, transparent 0.46875rem);
+  background-size: 1.125rem 1.125rem;
+}
+
+input.switch.switch-sm:checked {
+  background-image: radial-gradient(circle, var(--action-label) 0 0.40625rem, transparent 0.46875rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  input.switch {
+    transition: none;
+  }
+}
+
+/* Segmented radios ------------------------------------------------------ */
+
+/* Real radios, so the arrow keys move the choice; each one covers its own
+   segment, transparent, and the segment under it shows the state. */
+.setting-segmented {
+  display: flex;
+  flex: none;
+  gap: 0.125rem;
+  padding: 0.1875rem;
+  border-radius: var(--r-pill);
+  background: var(--fill-tertiary);
+}
+
+.setting-row-stacked .setting-segmented label {
+  flex: 1;
+}
+
+.setting-segmented label {
+  position: relative;
+  display: flex;
+  cursor: pointer;
+}
+
+.setting-segmented input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.setting-segmented span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--r-pill);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--label-secondary);
+  transition: background-color var(--t-fast), color var(--t-fast);
+}
+
+.setting-segmented input:checked + span {
+  background: var(--surface-raised);
+  color: var(--text-color);
+  box-shadow: 0 0 0 1px var(--separator), var(--shadow-1);
+}
+
+.setting-segmented input:focus-visible + span {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
+}
+
+/* A site's own options --------------------------------------------------- */
+
+.setting-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.setting-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0 var(--gap-lg) 0.75rem calc(var(--gap-lg) + 0.75rem);
+}
+
+/* Closed while the switch above them is off. Without :has() they stay open,
+   which costs height, not function. */
+.setting-block:has(> .setting-row .switch:not(:checked)) > .setting-sub {
+  display: none;
+}
+
+.setting-sub-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--gap-sm);
+  min-height: 2rem;
+  font-size: 0.78125rem;
+  color: var(--label-secondary);
+  cursor: pointer;
 }
 
-.theme-toggle-row > span {
+.setting-sub-row > span {
+  min-width: 0;
+}
+
+.setting-sub .secondary-btn {
+  width: auto;
+  align-self: flex-start;
+  min-height: 2.25rem;
+  padding: 0.375rem 0.875rem;
   font-size: 0.8125rem;
 }
+
+/* Theme switcher ------------------------------------------------------- */
 
 .theme-switcher {
   display: flex;
@@ -1337,40 +1507,6 @@ input[type="checkbox"] {
   height: 0.9375rem;
 }
 
-/* Shortcuts ------------------------------------------------------------ */
-
-.shortcut-info {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-xs);
-}
-
-.shortcut-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--gap-sm);
-  font-size: 0.8125rem;
-  color: var(--label-secondary);
-}
-
-.shortcut-row code {
-  padding: 0.125rem 0.4375rem;
-  border-radius: var(--r-xs);
-  background: var(--surface-color);
-  box-shadow: inset 0 0 0 1px var(--separator);
-  color: var(--text-color);
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0;
-}
-
-.shortcut-customize {
-  margin-top: var(--gap-xs);
-  font-size: 0.75rem;
-  color: var(--label-tertiary);
-}
-
 .shortcut-link {
   color: var(--primary-color);
   text-decoration: none;
@@ -1383,26 +1519,11 @@ input[type="checkbox"] {
 /* Metadata format ------------------------------------------------------ */
 
 .metadata-format-container {
-  display: flex;
-  flex-direction: column;
   gap: var(--gap-sm);
-  padding-top: var(--gap-xs);
 }
 
 .metadata-format-container.hidden {
   display: none !important;
-}
-
-.metadata-format-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  font-size: 0.8125rem;
-}
-
-.metadata-format-label small {
-  font-size: 0.6875rem;
-  color: var(--label-tertiary);
 }
 
 .metadata-format-input {
@@ -1433,7 +1554,7 @@ input[type="checkbox"] {
   padding: 0.3125rem 0.75rem;
   border: 1px solid var(--border-color);
   border-radius: var(--r-pill);
-  background: var(--surface-color);
+  background: var(--surface-raised);
   color: var(--text-color);
   font-size: 0.75rem;
   font-weight: 500;
@@ -1457,7 +1578,7 @@ input[type="checkbox"] {
 }
 
 .token-limit-select {
-  margin-left: auto;
+  flex: none;
 }
 
 .token-limit-select:focus {
@@ -1522,8 +1643,11 @@ input[type="checkbox"] {
   box-shadow: inset 0 1px 0 var(--separator);
 }
 
+/* Nothing scrolls under the bar while the sheet is up — the sheet is solid —
+   so the fade has nothing to dissolve. Left on, it lay over the bottom edge
+   of the sheet's key and read as a glow under it. */
 #mainView.research-open .research-bar::before {
-  background: linear-gradient(to top, var(--surface-color), transparent);
+  display: none;
 }
 
 /* Scroll edge effect instead of a divider: content dissolves into the bar. */
@@ -1641,21 +1765,18 @@ input[type="checkbox"] {
   height: 1rem;
 }
 
-/* The sheet's own action is the accent blue, not the ink key. Two ink
-   controls a centimetre apart — this one and the go arrow in the bar directly
-   below it — read as the same button drawn twice; the blue says they are two
-   different things. */
-#researchStartBtn {
-  background: var(--primary-color);
-  color: var(--primary-label);
+/* With the plan up, the sheet's own key is the one way to start, so the go
+   arrow steps out of the bar instead of being a second button for the same
+   thing a centimetre below it. Enter in the field still starts the run.
+   Without :has() both stay, which costs nothing but repetition. */
+#mainView:has(#researchSheet[data-state="plan"][aria-hidden="false"]) .research-go {
+  visibility: hidden;
 }
 
-#researchStartBtn:hover {
-  background: var(--primary-hover);
-}
-
-#researchStartBtn.is-pressed {
-  background: var(--primary-active);
+/* The heavy key, the same weight as the one that copies a page. */
+.research-actions #researchStartBtn {
+  min-height: 3.25rem;
+  font-weight: 600;
 }
 
 /* Sheet ---------------------------------------------------------------- */
@@ -1709,7 +1830,7 @@ input[type="checkbox"] {
 
 .research-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: var(--gap-sm);
 }
@@ -1720,6 +1841,25 @@ input[type="checkbox"] {
   line-height: 1.2;
   letter-spacing: -0.025em;
   color: var(--text-color);
+}
+
+/* Mono chips on the head's right edge, set like the page card's mode label:
+   where the question goes while planning, how far the run is after that. */
+.research-engine {
+  flex: none;
+  padding: 0.1875rem 0.5rem;
+  border-radius: var(--r-pill);
+  background: var(--fill-secondary);
+  color: var(--label-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.research-sheet:not([data-state="plan"]) .research-engine {
+  display: none;
 }
 
 .research-count {
@@ -1841,7 +1981,7 @@ input[type="checkbox"] {
 .research-actions .primary-btn,
 .research-actions .secondary-btn {
   flex: 1;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   font-size: 0.875rem;
 }
 
@@ -2099,14 +2239,40 @@ input[type="checkbox"] {
 
 /* Result --------------------------------------------------------------- */
 
+/* The downloaded file as a card, built like the page card on the main view:
+   an ink tile with what it is, then its name and its size. */
 .research-result {
   display: flex;
-  flex-direction: column;
-  gap: var(--gap-xs);
+  align-items: center;
+  gap: var(--gap-md);
   padding: var(--gap-md) 0.875rem;
   border-radius: var(--r-lg);
   background: var(--surface-sunken);
   border: 1px solid var(--separator);
+}
+
+.result-glyph {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--r-sm);
+  background: var(--action-color);
+  color: var(--action-label);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.result-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xs);
 }
 
 .research-result-note {
@@ -2313,7 +2479,7 @@ input[type="checkbox"] {
 
   .header,
   .split-btn-menu,
-  .setting-group,
+  .settings-list,
   .research-sheet,
   .research-bar,
   .research-result {
@@ -2474,26 +2640,6 @@ input[type="checkbox"] {
 
 .telegram-date-clear:hover {
   background: var(--fill-secondary);
-}
-
-/* About ----------------------------------------------------------------- */
-
-.about-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--gap-sm);
-  padding: 0.25rem 0;
-  font-size: 0.8125rem;
-  color: var(--label-secondary);
-}
-
-/* The build id is there to be compared, so it is monospaced and selectable. */
-.about-value {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--label-primary);
-  user-select: text;
 }
 
 /* The custom-date row only appears when "Dates" is chosen, so the common case

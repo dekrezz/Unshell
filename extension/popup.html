@@ -251,11 +251,13 @@
           <header class="research-head">
             <h2 id="researchSheetTitle" class="research-title">Research</h2>
             <span id="researchCount" class="research-count" hidden>0 / 0</span>
+            <!-- Where the question goes, said before it goes there. -->
+            <span class="research-engine">DuckDuckGo</span>
           </header>
 
           <!-- STATE: plan -->
           <div id="researchPlan" class="research-block" data-block="plan">
-            <p class="research-lede">Searches the web, reads each page, and downloads one Markdown file.</p>
+            <p class="research-lede">Reads every result in the background and saves them as one Markdown file.</p>
             <div class="research-plan-row">
               <span class="research-plan-label">Sources</span>
               <div id="researchSegments" class="research-segmented" role="radiogroup"
@@ -293,11 +295,14 @@
           <div id="researchResult" class="research-block hidden" data-block="result">
             <p class="research-result-note hidden"></p>
             <div class="research-result">
-              <span id="researchFile" class="result-file"></span>
-              <div class="result-meta">
-                <span id="researchTokens" class="token-value" title="Estimated with the o200k_base encoding">~0</span>
-                <span class="token-label">tokens</span>
-                <span id="researchSourcesMeta" class="result-sources"></span>
+              <span class="result-glyph" aria-hidden="true">MD</span>
+              <div class="result-body">
+                <span id="researchFile" class="result-file"></span>
+                <div class="result-meta">
+                  <span id="researchTokens" class="token-value" title="Estimated with the o200k_base encoding">~0</span>
+                  <span class="token-label">tokens</span>
+                  <span id="researchSourcesMeta" class="result-sources"></span>
+                </div>
               </div>
             </div>
             <button id="researchFailedToggle" class="research-disclosure hidden" type="button"
@@ -349,329 +354,278 @@
           </header>
 
           <div class="settings-content">
+            <!-- Rows, not forms: the name on the left, the control on the
+                 right, the explanation under the name. A site's own options
+                 open under it only while that site's mode is on. -->
             <section class="settings-section" aria-labelledby="settings-copy">
               <h2 class="settings-section-title" id="settings-copy">Copy</h2>
-              <p class="settings-section-lede">What a copy contains</p>
-              <div class="setting-group">
-                <h3>Content Scope</h3>
-                <label class="setting-option">
-                  <input
-                    type="radio"
-                    name="contentScope"
-                    value="mainContent"
-                    checked
-                  />
-                  <span>Main article content only</span>
-                </label>
-                <label class="setting-option">
-                  <input type="radio" name="contentScope" value="fullPage" />
-                  <span>Full page content</span>
-                </label>
-                <label class="setting-option">
-                  <input type="radio" name="contentScope" value="selection" />
-                  <span>Selected text only</span>
-                </label>
-              </div>
-                <div class="setting-group">
-                <h3>Formatting Options</h3>
-                <label class="setting-option">
-                  <input type="checkbox" id="preserveTables" checked />
-                  <span>Preserve table formatting</span>
-                </label>
-                <label class="setting-option">
-                  <input type="checkbox" id="includeImages" checked />
-                  <span>Include images</span>
-                </label>
-                <label class="setting-option">
-                  <input type="checkbox" id="includeTitle" checked />
-                  <span>Include page title as heading</span>
-                </label>
-                <label class="setting-option">
-                  <input type="checkbox" id="includeLinks" checked />
-                  <span>Include links in markdown</span>
-                </label>
-              </div>
-                <div class="setting-group">
-                <h3>Metadata Format</h3>
-                <label class="setting-option">
-                  <input type="checkbox" id="includeMetadata" checked />
-                  <span>Include source metadata at end</span>
-                </label>
-                <div id="metadataFormatContainer" class="metadata-format-container">
-                  <label for="metadataFormat" class="metadata-format-label">
-                    <span>Custom Format:</span>
-                    <small>Use variables: {title}, {url}, {date}, {author}, {siteName}, {excerpt}</small>
-                  </label>
-                  <textarea
-                    id="metadataFormat"
-                    class="metadata-format-input"
-                    rows="3"
-                    placeholder="---&#10;Title: {title}&#10;Author: {author}&#10;Date: {date}&#10;Source: {url}"
-                  >---
-  Source: [{title}]({url})</textarea>
-                  <button id="resetMetadataFormat" class="reset-btn">Reset to Default</button>
+              <div class="settings-list">
+                <div class="setting-row">
+                  <span class="setting-label" id="scopeLabel">Scope</span>
+                  <div class="setting-segmented" role="radiogroup" aria-labelledby="scopeLabel">
+                    <label><input type="radio" name="contentScope" value="mainContent" checked /><span>Article</span></label>
+                    <label><input type="radio" name="contentScope" value="fullPage" /><span>Full page</span></label>
+                    <label><input type="radio" name="contentScope" value="selection" /><span>Selection</span></label>
+                  </div>
                 </div>
-              </div>
-                <div class="setting-group">
-                <h3>Token Counter</h3>
-                <label class="setting-option">
-                  <input type="checkbox" id="showTokenCount" checked />
-                  <span>Show token count after conversion</span>
+                <label class="setting-row setting-option">
+                  <span class="setting-label">Tables</span>
+                  <input type="checkbox" id="preserveTables" class="switch" checked />
+                </label>
+                <label class="setting-row setting-option">
+                  <span class="setting-label">Images</span>
+                  <input type="checkbox" id="includeImages" class="switch" checked />
+                </label>
+                <label class="setting-row setting-option">
+                  <span class="setting-label">Links</span>
+                  <input type="checkbox" id="includeLinks" class="switch" checked />
+                </label>
+                <label class="setting-row setting-option">
+                  <span class="setting-label">Page title as a heading</span>
+                  <input type="checkbox" id="includeTitle" class="switch" checked />
+                </label>
+                <div class="setting-block">
+                  <label class="setting-row setting-option">
+                    <span class="setting-label">Source metadata at the end</span>
+                    <input type="checkbox" id="includeMetadata" class="switch" checked />
+                  </label>
+                  <div id="metadataFormatContainer" class="setting-sub metadata-format-container">
+                    <label for="metadataFormat" class="setting-hint">
+                      Variables: {title}, {url}, {date}, {author}, {siteName}, {excerpt}
+                    </label>
+                    <textarea id="metadataFormat" class="metadata-format-input" rows="3"
+                              placeholder="---&#10;Title: {title}&#10;Author: {author}&#10;Date: {date}&#10;Source: {url}">---
+Source: [{title}]({url})</textarea>
+                    <button id="resetMetadataFormat" class="reset-btn" type="button">Reset to default</button>
+                  </div>
+                </div>
+                <label class="setting-row setting-option">
+                  <span class="setting-label">Token count after a copy</span>
+                  <input type="checkbox" id="showTokenCount" class="switch" checked />
+                </label>
+                <label class="setting-row setting-option">
+                  <span class="setting-label">Scroll to load more first
+                    <small class="setting-hint">For virtualised pages (Gemini, ChatGPT): scrolls before reading so more of the page is loaded. Off by default.</small>
+                  </span>
+                  <input type="checkbox" id="triggerLazyLoading" class="switch" />
                 </label>
               </div>
-                <div class="setting-group">
-                <h3>Lazy Loading Support</h3>
-                <label class="setting-option">
-                  <input type="checkbox" id="triggerLazyLoading" />
-                  <span>Auto-scroll to load more content</span>
-                </label>
-                <small style="display: block; margin-top: 4px; color: var(--text-secondary);">
-                  For pages with virtual scrolling (e.g., Gemini, ChatGPT), attempts to load more content before extraction. Off by default; turn on for chat interfaces.
-                </small>
-              </div>
-              </section>
+            </section>
 
             <section class="settings-section" aria-labelledby="settings-sites">
               <h2 class="settings-section-title" id="settings-sites">Sites</h2>
-              <p class="settings-section-lede">Pages read by their own extractor</p>
-              <div class="setting-group">
-                <h3>Reddit</h3>
-                <label class="setting-option">
-                  <input type="checkbox" id="redditMode" />
-                  <span>Reddit mode (post + comments)</span>
-                </label>
-                <small style="display: block; margin-top: 4px; color: var(--text-secondary);">
-                  On Reddit threads, copies the post with its full comment tree (author, score, nesting) instead of the article-only extraction.
-                </small>
-                <label class="setting-option" style="margin-top: 8px;">
-                  <span>Comment sort:</span>
-                  <select id="redditCommentSort" class="token-limit-select">
-                    <option value="confidence">Best</option>
-                    <option value="top">Top</option>
-                    <option value="new">New</option>
-                    <option value="controversial">Controversial</option>
-                    <option value="old">Old</option>
-                    <option value="qa">Q&amp;A</option>
-                  </select>
-                </label>
-                <label class="setting-option">
-                  <span>Max comments:</span>
-                  <select id="redditMaxComments" class="token-limit-select">
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                    <option value="250">250</option>
-                    <option value="500">500</option>
-                    <option value="all">All</option>
-                  </select>
-                </label>
+              <p class="settings-section-lede">Pages read by their own extractor instead of the generic one.</p>
+              <div class="settings-list">
+                <div class="setting-block">
+                  <label class="setting-row setting-option">
+                    <span class="setting-label">Reddit
+                      <small class="setting-hint">The post with its full comment tree: author, score, nesting.</small>
+                    </span>
+                    <input type="checkbox" id="redditMode" class="switch" />
+                  </label>
+                  <div class="setting-sub">
+                    <label class="setting-sub-row"><span>Comment sort</span>
+                      <select id="redditCommentSort" class="token-limit-select">
+                        <option value="confidence">Best</option>
+                        <option value="top">Top</option>
+                        <option value="new">New</option>
+                        <option value="controversial">Controversial</option>
+                        <option value="old">Old</option>
+                        <option value="qa">Q&amp;A</option>
+                      </select>
+                    </label>
+                    <label class="setting-sub-row"><span>Max comments</span>
+                      <select id="redditMaxComments" class="token-limit-select">
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="250">250</option>
+                        <option value="500">500</option>
+                        <option value="all">All</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="setting-block">
+                  <label class="setting-row setting-option">
+                    <span class="setting-label">GitHub
+                      <small class="setting-hint">A repository as its facts, the README as its original Markdown and the full file tree, from GitHub's API.</small>
+                    </span>
+                    <input type="checkbox" id="githubMode" class="switch" />
+                  </label>
+                  <div class="setting-sub">
+                    <label class="setting-sub-row"><span>README</span><input type="checkbox" id="githubIncludeReadme" class="switch switch-sm" /></label>
+                    <label class="setting-sub-row"><span>File tree</span><input type="checkbox" id="githubIncludeTree" class="switch switch-sm" /></label>
+                    <label class="setting-sub-row"><span>Max tree entries</span>
+                      <select id="githubMaxTreeEntries" class="token-limit-select">
+                        <option value="250">250</option>
+                        <option value="500">500</option>
+                        <option value="1000">1000</option>
+                        <option value="5000">5000</option>
+                        <option value="all">All</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="setting-block">
+                  <label class="setting-row setting-option">
+                    <span class="setting-label">YouTube
+                      <small class="setting-hint">A video's facts, the full description, and the comments, which the page loads only on scroll.</small>
+                    </span>
+                    <input type="checkbox" id="youtubeMode" class="switch" />
+                  </label>
+                  <div class="setting-sub">
+                    <label class="setting-sub-row"><span>Description</span><input type="checkbox" id="youtubeIncludeDescription" class="switch switch-sm" /></label>
+                    <label class="setting-sub-row"><span>Comments</span><input type="checkbox" id="youtubeIncludeComments" class="switch switch-sm" /></label>
+                    <label class="setting-sub-row"><span>Max comments</span>
+                      <select id="youtubeMaxComments" class="token-limit-select">
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="250">250</option>
+                        <option value="all">All</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="setting-block">
+                  <label class="setting-row setting-option">
+                    <span class="setting-label">Discord
+                      <small class="setting-hint">The open channel as a transcript, read from the page: Discord's API would need your account token.</small>
+                    </span>
+                    <input type="checkbox" id="discordMode" class="switch" />
+                  </label>
+                  <div class="setting-sub">
+                    <label class="setting-sub-row"><span>Max messages</span>
+                      <select id="discordMaxMessages" class="token-limit-select">
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                        <option value="500">500</option>
+                        <option value="all">All loaded</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="setting-block">
+                  <label class="setting-row setting-option">
+                    <span class="setting-label">X
+                      <small class="setting-hint">A post with its thread, quoted posts, replies and counts, scrolling the timeline for them.</small>
+                    </span>
+                    <input type="checkbox" id="xMode" class="switch" />
+                  </label>
+                  <div class="setting-sub">
+                    <label class="setting-sub-row"><span>Replies in threads</span><input type="checkbox" id="xIncludeReplies" class="switch switch-sm" /></label>
+                    <label class="setting-sub-row"><span>Max posts</span>
+                      <select id="xMaxPosts" class="token-limit-select">
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="250">250</option>
+                        <option value="all">All</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
               </div>
-                <div class="setting-group">
-                <h3>GitHub</h3>
-                <label class="setting-option">
-                  <input type="checkbox" id="githubMode" />
-                  <span>GitHub mode (repo + README + tree)</span>
-                </label>
-                <small style="display: block; margin-top: 4px; color: var(--text-secondary);">
-                  On a repository page, copies the name, description and facts, then the README as its original Markdown and the full file tree — read from GitHub's API, so nothing is lost to the rendered HTML and folders are not left unopened.
-                </small>
-                <label class="setting-option" style="margin-top: 8px;">
-                  <input type="checkbox" id="githubIncludeReadme" />
-                  <span>Include the README</span>
-                </label>
-                <label class="setting-option">
-                  <input type="checkbox" id="githubIncludeTree" />
-                  <span>Include the file tree</span>
-                </label>
-                <label class="setting-option">
-                  <span>Max tree entries:</span>
-                  <select id="githubMaxTreeEntries" class="token-limit-select">
-                    <option value="250">250</option>
-                    <option value="500">500</option>
-                    <option value="1000">1000</option>
-                    <option value="5000">5000</option>
-                    <option value="all">All</option>
-                  </select>
-                </label>
-              </div>
-                <div class="setting-group">
-                <h3>YouTube</h3>
-                <label class="setting-option">
-                  <input type="checkbox" id="youtubeMode" />
-                  <span>YouTube mode (description + comments)</span>
-                </label>
-                <small style="display: block; margin-top: 4px; color: var(--text-secondary);">
-                  On a video page, copies the title, channel and facts, the description in full — not the two lines the page shows — and the comment thread, which is not in the page at all until you scroll to it.
-                </small>
-                <label class="setting-option" style="margin-top: 8px;">
-                  <input type="checkbox" id="youtubeIncludeDescription" />
-                  <span>Include the description</span>
-                </label>
-                <label class="setting-option">
-                  <input type="checkbox" id="youtubeIncludeComments" />
-                  <span>Include comments</span>
-                </label>
-                <label class="setting-option">
-                  <span>Max comments:</span>
-                  <select id="youtubeMaxComments" class="token-limit-select">
-                    <option value="20">20</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                    <option value="250">250</option>
-                    <option value="all">All</option>
-                  </select>
-                </label>
-              </div>
-                <div class="setting-group">
-                <h3>Discord</h3>
-                <label class="setting-option">
-                  <input type="checkbox" id="discordMode" />
-                  <span>Discord mode (channel transcript)</span>
-                </label>
-                <small style="display: block; margin-top: 4px; color: var(--text-secondary);">
-                  Copies the open channel as a transcript with authors, timestamps and reply context, scrolling the message list for history. Read from the page rather than Discord's API, which would need your account token.
-                </small>
-                <label class="setting-option" style="margin-top: 8px;">
-                  <span>Max messages:</span>
-                  <select id="discordMaxMessages" class="token-limit-select">
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                    <option value="200">200</option>
-                    <option value="500">500</option>
-                    <option value="all">All loaded</option>
-                  </select>
-                </label>
-              </div>
-                <div class="setting-group">
-                <h3>X (Twitter)</h3>
-                <label class="setting-option">
-                  <input type="checkbox" id="xMode" />
-                  <span>X mode (thread + replies)</span>
-                </label>
-                <small style="display: block; margin-top: 4px; color: var(--text-secondary);">
-                  On x.com, copies the post with its thread, quoted posts, replies and engagement counts by scrolling the virtualised timeline.
-                </small>
-                <label class="setting-option" style="margin-top: 8px;">
-                  <input type="checkbox" id="xIncludeReplies" />
-                  <span>Include replies in threads</span>
-                </label>
-                <label class="setting-option">
-                  <span>Max posts:</span>
-                  <select id="xMaxPosts" class="token-limit-select">
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                    <option value="250">250</option>
-                    <option value="all">All</option>
-                  </select>
-                </label>
-              </div>
-              </section>
+            </section>
 
             <section class="settings-section" aria-labelledby="settings-research">
               <h2 class="settings-section-title" id="settings-research">Research</h2>
-              <div class="setting-group">
-                <h3>Research</h3>
-                <label class="setting-option">
-                  <input type="radio" name="researchCapture" value="quiet" checked />
-                  <span>Read each source without opening a tab</span>
+              <div class="settings-list">
+                <div class="setting-row setting-row-stacked">
+                  <span class="setting-label" id="captureLabel">Capture
+                    <small class="setting-hint">Quiet fetches each source's HTML in the background and opens a tab only for a page that needs one to render. Always render is slower and puts every source in the tab strip; use it when a site refuses the background fetch.</small>
+                  </span>
+                  <div class="setting-segmented" role="radiogroup" aria-labelledby="captureLabel">
+                    <label><input type="radio" name="researchCapture" value="quiet" checked /><span>Quiet</span></label>
+                    <label><input type="radio" name="researchCapture" value="render" /><span>Always render</span></label>
+                  </div>
+                </div>
+                <label class="setting-row setting-option">
+                  <span class="setting-label">Drop low-value sources
+                    <small class="setting-hint">Drops affiliate and coupon spam, paid-signal landings and copies of a page already captured, and pulls the next result in its place. Every drop is listed with its reason.</small>
+                  </span>
+                  <input type="checkbox" id="researchJunkFilter" class="switch" />
                 </label>
-                <label class="setting-option">
-                  <input type="radio" name="researchCapture" value="render" />
-                  <span>Always open each source in a background tab</span>
-                </label>
-                <small style="display: block; margin-top: 4px; color: var(--text-secondary);">
-                  Research fetches each source's HTML in the background and opens a tab only for pages that need one to render. Always rendering is slower and puts every source in the tab strip &mdash; use it if a site refuses the background fetch.
-                </small>
-                <label class="setting-option" style="margin-top: 8px;">
-                  <input type="checkbox" id="researchJunkFilter" />
-                  <span>Drop low-value sources and replace them</span>
-                </label>
-                <small style="display: block; margin-top: 4px; color: var(--text-secondary);">
-                  Scores every captured page and drops affiliate and coupon spam, paid-signal landings, and copies of a page already captured, then pulls the next search result in its place. Every drop is listed with its reason.
-                </small>
               </div>
-              </section>
+            </section>
 
             <section class="settings-section" aria-labelledby="settings-interface">
               <h2 class="settings-section-title" id="settings-interface">Interface</h2>
-              <div class="setting-group">
-                <h3>Appearance</h3>
-                <div class="theme-toggle-row">
-                  <span>Theme</span>
+              <div class="settings-list">
+                <div class="setting-row">
+                  <span class="setting-label">Theme</span>
                   <div class="theme-switcher">
-                    <button id="autoThemeBtn" class="theme-btn active" title="Follow the browser">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="theme-icon-small">
+                    <button id="autoThemeBtn" class="theme-btn active" type="button" title="Follow the browser" aria-label="Follow the browser">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="theme-icon-small" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 0v18" />
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 3a9 9 0 0 1 0 18" fill="currentColor" stroke="none" opacity="0.35" />
                       </svg>
                     </button>
-                    <button id="lightThemeBtn" class="theme-btn" title="Light">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="theme-icon-small">
+                    <button id="lightThemeBtn" class="theme-btn" type="button" title="Light" aria-label="Light">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="theme-icon-small" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
                       </svg>
                     </button>
-                    <button id="darkThemeBtn" class="theme-btn" title="Dark">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="theme-icon-small">
+                    <button id="darkThemeBtn" class="theme-btn" type="button" title="Dark" aria-label="Dark">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="theme-icon-small" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
                       </svg>
                     </button>
                   </div>
                 </div>
-              </div>
-                <div class="setting-group">
-                <h3>Keyboard Shortcuts</h3>
-                <div class="shortcut-info">
-                  <div class="shortcut-row">
-                    <span>Open Extension:</span>
-                    <code id="popupShortcut">Alt+Shift+L</code>
-                  </div>
-                  <div class="shortcut-row">
-                    <span>Quick Convert:</span>
-                    <code id="quickConvertShortcut">Alt+Shift+M</code>
-                  </div>
-                  <div class="shortcut-row">
-                    <span>Download File:</span>
-                    <code id="downloadShortcut">Alt+Shift+D</code>
-                  </div>
-                  <div class="shortcut-customize">
-                    <small>Customize at <a href="#" id="shortcutLink" class="shortcut-link">chrome://extensions/shortcuts</a></small>
-                  </div>
+                <div class="setting-row">
+                  <span class="setting-label">Open Unshell</span>
+                  <code id="popupShortcut" class="setting-value">Alt+Shift+L</code>
+                </div>
+                <div class="setting-row">
+                  <span class="setting-label">Copy the page</span>
+                  <code id="quickConvertShortcut" class="setting-value">Alt+Shift+M</code>
+                </div>
+                <div class="setting-row">
+                  <span class="setting-label">Save the page
+                    <small class="setting-hint">Change shortcuts at <a href="#" id="shortcutLink" class="shortcut-link">chrome://extensions/shortcuts</a></small>
+                  </span>
+                  <code id="downloadShortcut" class="setting-value">Alt+Shift+D</code>
                 </div>
               </div>
-              </section>
+            </section>
 
             <section class="settings-section" aria-labelledby="settings-about">
               <h2 class="settings-section-title" id="settings-about">About</h2>
-              <div class="setting-group" id="aboutGroup">
-                <h3>About</h3>
-                <div class="about-row">
-                  <span>Version</span>
-                  <span id="aboutVersion" class="about-value">—</span>
+              <div class="settings-list" id="aboutGroup">
+                <div class="setting-row">
+                  <span class="setting-label">Version</span>
+                  <span id="aboutVersion" class="setting-value">—</span>
                 </div>
-                <div class="about-row">
-                  <span>Build</span>
-                  <span id="aboutBuild" class="about-value">—</span>
+                <div class="setting-row">
+                  <span class="setting-label">Build
+                    <small class="setting-hint">A hash of the extension's own files. A reload that still shows the old id did not take.</small>
+                  </span>
+                  <span id="aboutBuild" class="setting-value">—</span>
                 </div>
-                <small style="display: block; margin-top: 4px; color: var(--text-secondary);">
-                  The build id is a hash of the extension's own files. It changes whenever the code does, so a reloaded build that still shows the old id did not actually take.
-                </small>
+                <div class="setting-block">
+                  <label class="setting-row setting-option">
+                    <span class="setting-label">Debug logging
+                      <small class="setting-hint">Logs are rewritten on each conversion.</small>
+                    </span>
+                    <input type="checkbox" id="debugMode" class="switch" />
+                  </label>
+                  <div class="setting-sub">
+                    <button id="copyLogsBtn" class="secondary-btn" type="button">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="btn-icon" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9.75a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
+                      </svg>
+                      <span class="btn-text">Copy debug logs</span>
+                    </button>
+                  </div>
+                </div>
               </div>
-                <div class="setting-group">
-                <h3>Debug Mode</h3>
-                <label class="setting-option">
-                  <input type="checkbox" id="debugMode" />
-                  <span>Enable debug logging</span>
-                </label>
-                <button id="copyLogsBtn" class="secondary-btn" style="width: 100%; margin-top: 8px;">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="btn-icon">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9.75a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
-                  </svg>
-                  <span class="btn-text">Copy Debug Logs</span>
-                </button>
-                <small style="display: block; margin-top: 4px; color: var(--text-secondary); text-align: center;">Logs are rewritten on each conversion</small>
-              </div>
-              </section>
-
+            </section>
           </div>
         </div>
       </div>
