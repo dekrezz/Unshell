@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ScrapLLM Build Script
+# Unshell Build Script
 # Consolidated build script for generating Chrome, Firefox, and source packages
 # Usage: ./scripts/build.sh [chrome|firefox|source|all]
 
@@ -57,7 +57,7 @@ rm -rf "$TEMP_DIR" 2>/dev/null
 mkdir -p "$TEMP_DIR"
 
 # Print build information
-echo "ScrapLLM Build Script"
+echo "Unshell Build Script"
 echo "======================"
 echo "Version: $VERSION"
 echo "Target: $TARGET"
@@ -69,7 +69,7 @@ build_chrome() {
   echo "Building Chrome package..."
   
   # Remove any existing Chrome output files
-  rm -f "$DIST_DIR/ScrapLLM-Chrome-v$VERSION.zip" 2>/dev/null
+  rm -f "$DIST_DIR/Unshell-Chrome-v$VERSION.zip" 2>/dev/null
   
   # Create a clean temporary directory
   CHROME_DIR="$TEMP_DIR/chrome"
@@ -143,9 +143,9 @@ build_chrome() {
   
   # Create the ZIP file
   echo "Creating Chrome ZIP file..."
-  (cd "$CHROME_DIR" && zip -r "$DIST_DIR/ScrapLLM-Chrome-v$VERSION.zip" * -q)
+  (cd "$CHROME_DIR" && zip -r "$DIST_DIR/Unshell-Chrome-v$VERSION.zip" * -q)
   
-  echo "Chrome package created: $DIST_DIR/ScrapLLM-Chrome-v$VERSION.zip"
+  echo "Chrome package created: $DIST_DIR/Unshell-Chrome-v$VERSION.zip"
   return 0
 }
 
@@ -154,7 +154,7 @@ build_firefox() {
   echo "Building Firefox package..."
   
   # Remove any existing Firefox output files
-  rm -f "$DIST_DIR/ScrapLLM-Firefox-v$VERSION.zip" 2>/dev/null
+  rm -f "$DIST_DIR/Unshell-Firefox-v$VERSION.zip" 2>/dev/null
   
   # Create a clean temporary directory
   FIREFOX_DIR="$TEMP_DIR/firefox"
@@ -225,9 +225,9 @@ build_firefox() {
   
   # Create the ZIP file
   echo "Creating Firefox ZIP file..."
-  (cd "$FIREFOX_DIR" && zip -r "$DIST_DIR/ScrapLLM-Firefox-v$VERSION.zip" * -q)
+  (cd "$FIREFOX_DIR" && zip -r "$DIST_DIR/Unshell-Firefox-v$VERSION.zip" * -q)
   
-  echo "Firefox package created: $DIST_DIR/ScrapLLM-Firefox-v$VERSION.zip"
+  echo "Firefox package created: $DIST_DIR/Unshell-Firefox-v$VERSION.zip"
   return 0
 }
 
@@ -236,7 +236,7 @@ build_source() {
   echo "Building source package..."
   
   # Remove any existing source output files
-  rm -f "$DIST_DIR/ScrapLLM-Source-v$VERSION.zip" 2>/dev/null
+  rm -f "$DIST_DIR/Unshell-Source-v$VERSION.zip" 2>/dev/null
   
   # Create a clean temporary directory
   SOURCE_DIR="$TEMP_DIR/source"
@@ -280,9 +280,9 @@ build_source() {
   
   # Create the ZIP file
   echo "Creating source ZIP file..."
-  (cd "$SOURCE_DIR" && zip -r "$DIST_DIR/ScrapLLM-Source-v$VERSION.zip" * -q)
+  (cd "$SOURCE_DIR" && zip -r "$DIST_DIR/Unshell-Source-v$VERSION.zip" * -q)
   
-  echo "Source package created: $DIST_DIR/ScrapLLM-Source-v$VERSION.zip"
+  echo "Source package created: $DIST_DIR/Unshell-Source-v$VERSION.zip"
   return 0
 }
 

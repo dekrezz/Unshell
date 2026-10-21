@@ -51,10 +51,10 @@ logs/
 temp-chrome-build/
 temp-firefox-build/
 .tmp-build/
-ScrapLLM-Chrome-*.zip
-ScrapLLM-Firefox-*.zip
-ScrapLLM-Source-*.zip
-ScrapLLM-v*.zip
+Unshell-Chrome-*.zip
+Unshell-Firefox-*.zip
+Unshell-Source-*.zip
+Unshell-v*.zip
 
 # IDE files
 .vscode/
