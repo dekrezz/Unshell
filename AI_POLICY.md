@@ -10,7 +10,7 @@ Everything below follows from that.
 
 ## The rules
 
-1. **Say exactly what you used.** Every pull request has a disclosure section. Tick "No AI" only if nothing was used, and that includes inline autocomplete. Otherwise name the tool and the exact model with its version, for example `Claude Code, Claude Opus 5.5` or `Cursor, GPT-5.1`. "Claude" or "ChatGPT" on its own is not an answer. Models in the same family write different code and make different mistakes, and the version tells the reviewer what to look for. Then say what the model did: autocomplete, the tests, a first draft of the extractor, all of it.
+1. **Say exactly what you used.** Every pull request has a disclosure section. Tick "No AI" only if nothing was used, and that includes inline autocomplete. Otherwise name the tool and the exact model with its version, for example `Claude Code, Claude Opus 5.5` or `Codex, GPT-6.1-Sol`. "Claude" or "ChatGPT" on its own is not an answer. Models in the same family write different code and make different mistakes, and the version tells the reviewer what to look for. Then say what the model did: autocomplete, the tests, a first draft of the extractor, all of it.
 
 2. **The explain-it-back test.** A reviewer may point at any line and ask why it is there. Answer in your own words, without pasting the question into a model. If you can't answer, the pull request is closed. This isn't a punishment. Nobody can maintain a change that nobody can explain.
 
