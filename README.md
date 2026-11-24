@@ -56,6 +56,19 @@ Packages land in `dist/`.
 | Chrome | `chrome://extensions` → Developer mode → Load unpacked → the extracted `dist/Unshell-Chrome-*.zip` |
 | Firefox | `about:debugging#/runtime/this-firefox` → Load Temporary Add-on → `manifest.json` from the extracted Firefox package |
 
+To open a separate Firefox with the add-on already installed (needs Node.js):
+
+```bash
+cd Unshell
+npm install
+bash scripts/build.sh firefox
+rm -rf dist/firefox && mkdir -p dist/firefox
+unzip -q "dist/Unshell-Firefox-v$(node -p "require('./package.json').version").zip" -d dist/firefox
+npx web-ext run --source-dir dist/firefox
+```
+
+`build.sh` only builds the packages and does not start a browser. Close that Firefox window or press `Ctrl+C` to stop `web-ext`. Changes in `extension/` reach it only after you build and extract the package again.
+
 Release Firefox only installs signed add-ons permanently. For a permanent unsigned install use Developer Edition, Nightly or ESR with `xpinstall.signatures.required=false`.
 
 ### 3. Copy something
@@ -115,7 +128,10 @@ bash scripts/build.sh all
 `build.sh` takes one of `chrome`, `firefox`, `source` or `all`, and an optional version:
 
 ```bash
-bash scripts/build.sh chrome | firefox | source | all
+bash scripts/build.sh chrome
+bash scripts/build.sh firefox
+bash scripts/build.sh source
+bash scripts/build.sh all
 bash scripts/build.sh --version 2.3.0 all
 ```
 
@@ -214,7 +230,10 @@ Contributor and agent rules, architecture and the checks to run are in [AGENTS.m
 ## Build
 
 ```bash
-bash scripts/build.sh chrome | firefox | source | all
+bash scripts/build.sh chrome
+bash scripts/build.sh firefox
+bash scripts/build.sh source
+bash scripts/build.sh all
 bash scripts/build.sh --version 2.3.0 all
 ```
 
